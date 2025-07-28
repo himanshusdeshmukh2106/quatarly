@@ -29,7 +29,7 @@ SECRET_KEY = 'django-insecure-64bq_ym*v0208+^_5xp^wkf#10gcx_kwfl=jyq_=(2b0lx+q4=
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.43.145', 'localhost', '127.0.0.1','10.110.219.229', '192.168.1.100']
+ALLOWED_HOSTS = ['192.168.43.145', 'localhost', '127.0.0.1','10.110.219.229', '192.168.1.100','192.168.1.7']
 
 
 # Application definition
@@ -59,6 +59,8 @@ INSTALLED_APPS = [
     'notifications',
     'sms',
     'email_reader',
+    'goals',
+    'opportunities',
 ]
 
 MIDDLEWARE = [
