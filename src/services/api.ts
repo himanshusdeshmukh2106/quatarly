@@ -1,9 +1,13 @@
 import axios from 'axios';
-import { NewsArticle, Category, Tag, UserPreferences, QuestionnaireResponse } from '../types';
+import { NewsArticle, Category, Tag, UserPreferences, QuestionnaireResponse, Goal, CreateGoalRequest, UpdateGoalRequest, Opportunity, UserProfile } from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // IMPORTANT: Replace with your computer's IP address
-const API_BASE_URL = 'http://192.168.1.100:8000/api';
+// For Android emulator, use 10.0.2.2
+// For physical device or iOS simulator, use your computer's IP address
+const API_BASE_URL = __DEV__ 
+  ? 'http://192.168.1.7:8000/api'  // Change this to your computer's IP
+  : 'http://192.168.1.7:8000/api';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -162,3 +166,264 @@ export const fetchBudgetNotes = async (token?: string) => {
   const response = await apiClient.get('/budget/notes/', { headers });
   return response.data as Record<string, string>;
 }; 
+
+// ===== Goals API =====
+
+/**
+ * Fetches all goals for the authenticated user
+ */
+export const fetchGoals = async (token?: string) => {
+  const headers: any = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Token ${token}`;
+  } else {
+    const hasHeader = Boolean(apiClient.defaults.headers.common['Authorization']);
+    if (!hasHeader) {
+      const stored = await AsyncStorage.getItem('authToken');
+      if (stored) setAuthToken(stored);
+    }
+  }
+  
+  const response = await apiClient.get('/goals/', { headers });
+  
+  // Transform backend response to frontend format
+  return response.data.map((goal: any) => ({
+    id: goal.id.toString(),
+    title: goal.title,
+    currentAmount: parseFloat(goal.current_amount),
+    targetAmount: parseFloat(goal.target_amount),
+    description: goal.description,
+    category: goal.category,
+    image: goal.image_url || 'https://via.placeholder.com/600x240.png?text=Goal',
+    logo: 'https://logo.clearbit.com/chase.com', // Default bank logo
+    aiAnalysis: goal.ai_analysis || 'AI analysis will be generated for this goal.',
+    createdAt: goal.created_at,
+    updatedAt: goal.updated_at,
+    progressPercentage: goal.progress_percentage || 0,
+  })) as Goal[];
+};
+
+/**
+ * Creates a new goal for the authenticated user
+ */
+export const createGoal = async (goalData: CreateGoalRequest, token?: string) => {
+  const headers: any = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Token ${token}`;
+  } else {
+    const hasHeader = Boolean(apiClient.defaults.headers.common['Authorization']);
+    if (!hasHeader) {
+      const stored = await AsyncStorage.getItem('authToken');
+      if (stored) setAuthToken(stored);
+    }
+  }
+  
+  const response = await apiClient.post('/goals/', goalData, { headers });
+  
+  // Transform backend response to frontend format
+  const goal = response.data;
+  return {
+    id: goal.id.toString(),
+    title: goal.title,
+    currentAmount: parseFloat(goal.current_amount),
+    targetAmount: parseFloat(goal.target_amount),
+    description: goal.description,
+    category: goal.category,
+    image: goal.image_url || 'https://via.placeholder.com/600x240.png?text=Goal',
+    logo: 'https://logo.clearbit.com/chase.com', // Default bank logo
+    aiAnalysis: goal.ai_analysis || 'AI analysis will be generated for this goal.',
+    createdAt: goal.created_at,
+    updatedAt: goal.updated_at,
+    progressPercentage: goal.progress_percentage || 0,
+  } as Goal;
+};
+
+/**
+ * Updates an existing goal
+ */
+export const updateGoal = async (goalId: string, goalData: UpdateGoalRequest, token?: string) => {
+  const headers: any = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Token ${token}`;
+  } else {
+    const hasHeader = Boolean(apiClient.defaults.headers.common['Authorization']);
+    if (!hasHeader) {
+      const stored = await AsyncStorage.getItem('authToken');
+      if (stored) setAuthToken(stored);
+    }
+  }
+  
+  const response = await apiClient.patch(`/goals/${goalId}/`, goalData, { headers });
+  
+  // Transform backend response to frontend format
+  const goal = response.data;
+  return {
+    id: goal.id.toString(),
+    title: goal.title,
+    currentAmount: parseFloat(goal.current_amount),
+    targetAmount: parseFloat(goal.target_amount),
+    description: goal.description,
+    category: goal.category,
+    image: goal.image_url || 'https://via.placeholder.com/600x240.png?text=Goal',
+    logo: 'https://logo.clearbit.com/chase.com', // Default bank logo
+    aiAnalysis: goal.ai_analysis || 'AI analysis will be generated for this goal.',
+    createdAt: goal.created_at,
+    updatedAt: goal.updated_at,
+    progressPercentage: goal.progress_percentage || 0,
+  } as Goal;
+};
+
+/**
+ * Deletes a goal
+ */
+export const deleteGoal = async (goalId: string, token?: string) => {
+  const headers: any = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Token ${token}`;
+  } else {
+    const hasHeader = Boolean(apiClient.defaults.headers.common['Authorization']);
+    if (!hasHeader) {
+      const stored = await AsyncStorage.getItem('authToken');
+      if (stored) setAuthToken(stored);
+    }
+  }
+  
+  const response = await apiClient.delete(`/goals/${goalId}/`, { headers });
+  return response.data;
+};
+
+/**
+ * Generates a new image for a goal
+ */
+export const generateGoalImage = async (goalId: string, token?: string) => {
+  const headers: any = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Token ${token}`;
+  } else {
+    const hasHeader = Boolean(apiClient.defaults.headers.common['Authorization']);
+    if (!hasHeader) {
+      const stored = await AsyncStorage.getItem('authToken');
+      if (stored) setAuthToken(stored);
+    }
+  }
+  
+  const response = await apiClient.post(`/goals/${goalId}/generate_image/`, {}, { headers });
+  
+  // Transform backend response to frontend format
+  const goal = response.data;
+  return {
+    id: goal.id.toString(),
+    title: goal.title,
+    currentAmount: parseFloat(goal.current_amount),
+    targetAmount: parseFloat(goal.target_amount),
+    description: goal.description,
+    category: goal.category,
+    image: goal.image_url || 'https://via.placeholder.com/600x240.png?text=Goal',
+    logo: 'https://logo.clearbit.com/chase.com', // Default bank logo
+    aiAnalysis: goal.ai_analysis || 'AI analysis will be generated for this goal.',
+    createdAt: goal.created_at,
+    updatedAt: goal.updated_at,
+    progressPercentage: goal.progress_percentage || 0,
+  } as Goal;
+};
+
+// ===== Opportunities API =====
+
+/**
+ * Fetches all opportunities for the authenticated user
+ */
+export const fetchOpportunities = async (token?: string) => {
+  const headers: any = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Token ${token}`;
+  } else {
+    const hasHeader = Boolean(apiClient.defaults.headers.common['Authorization']);
+    if (!hasHeader) {
+      const stored = await AsyncStorage.getItem('authToken');
+      if (stored) setAuthToken(stored);
+    }
+  }
+  
+  const response = await apiClient.get('/opportunities/', { headers });
+  
+  // Transform backend response to frontend format
+  return response.data.map((opportunity: any) => ({
+    id: opportunity.id.toString(),
+    title: opportunity.title,
+    description: opportunity.description,
+    category: opportunity.category,
+    opportunityType: opportunity.category as 'investment' | 'goal_specific' | 'career' | 'financial_product' | 'market_timing' | 'education' | 'lifestyle',
+    priority: opportunity.priority,
+    aiInsights: opportunity.ai_insights || 'AI insights will be generated for this opportunity.',
+    actionSteps: opportunity.action_steps || [],
+    relevanceScore: parseFloat(opportunity.relevance_score) || 0.0,
+    imageUrl: opportunity.image_url || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=600&h=240',
+    logoUrl: opportunity.logo_url || 'https://logo.clearbit.com/example.com',
+    offerDetails: opportunity.offer_details || {},
+    isActive: true, // Default to active since backend doesn't have this field
+    createdAt: opportunity.created_at,
+    updatedAt: opportunity.updated_at,
+  })) as Opportunity[];
+};
+
+/**
+ * Refreshes/regenerates opportunities for the authenticated user (synchronous)
+ */
+export const refreshOpportunities = async (token?: string) => {
+  const headers: any = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Token ${token}`;
+  } else {
+    const hasHeader = Boolean(apiClient.defaults.headers.common['Authorization']);
+    if (!hasHeader) {
+      const stored = await AsyncStorage.getItem('authToken');
+      if (stored) setAuthToken(stored);
+    }
+  }
+  
+  const response = await apiClient.post('/opportunities/refresh/', {}, { headers });
+  
+  // Transform backend response to frontend format
+  if (response.data && Array.isArray(response.data)) {
+    return response.data.map((opportunity: any) => ({
+      id: opportunity.id.toString(),
+      title: opportunity.title,
+      description: opportunity.description,
+      category: opportunity.category,
+      opportunityType: opportunity.category as 'investment' | 'goal_specific' | 'career' | 'financial_product' | 'market_timing' | 'education' | 'lifestyle',
+      priority: opportunity.priority,
+      aiInsights: opportunity.ai_insights || 'AI insights will be generated for this opportunity.',
+      actionSteps: opportunity.action_steps || [],
+      relevanceScore: parseFloat(opportunity.relevance_score) || 0.0,
+      imageUrl: opportunity.image_url || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=600&h=240',
+      logoUrl: opportunity.logo_url || 'https://logo.clearbit.com/example.com',
+      offerDetails: opportunity.offer_details || {},
+      isActive: true, // Default to active since backend doesn't have this field
+      createdAt: opportunity.created_at,
+      updatedAt: opportunity.updated_at,
+    })) as Opportunity[];
+  }
+  
+  return [];
+};
+
+
+
+/**
+ * Fetches user questionnaire responses for profile generation
+ */
+export const fetchUserResponses = async (token?: string) => {
+  const headers: any = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Token ${token}`;
+  } else {
+    const hasHeader = Boolean(apiClient.defaults.headers.common['Authorization']);
+    if (!hasHeader) {
+      const stored = await AsyncStorage.getItem('authToken');
+      if (stored) setAuthToken(stored);
+    }
+  }
+  
+  const response = await apiClient.get('/questionnaire/responses/', { headers });
+  return response.data;
+};

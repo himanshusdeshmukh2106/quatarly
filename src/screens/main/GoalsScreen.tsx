@@ -1,54 +1,27 @@
-import React, { useContext } from 'react';
-import { View, Text, ScrollView, Image, StyleSheet } from 'react-native';
+import React, { useContext, useState, useEffect } from 'react';
+import { View, Text, ScrollView, Image, StyleSheet, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { ThemeContext } from '../../context/ThemeContext';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import ProgressBar from '../../components/ProgressBar';
-
-interface Goal {
-  id: string;
-  title: string;
-  currentAmount: number;
-  targetAmount: number;
-  image: any; // require img local
-  logo: string; // bank logo url
-  aiAnalysis: string;
-}
-
-const goals: Goal[] = [
-  {
-    id: '1',
-    title: 'Emergency Fund',
-    currentAmount: 30294.09,
-    targetAmount: 50000,
-    image: 'https://via.placeholder.com/600x240.png?text=Emergency',
-    logo: 'https://logo.clearbit.com/chase.com',
-    aiAnalysis:
-      "You're 60% towards your emergency fund goal! Consider automating ₹5,000 monthly transfers to reach your target faster.",
-  },
-  {
-    id: '2',
-    title: 'Vacation',
-    currentAmount: 6589.69,
-    targetAmount: 12000,
-    image: 'https://via.placeholder.com/600x240.png?text=Vacation',
-    logo: 'https://logo.clearbit.com/citi.com',
-    aiAnalysis:
-      "You're halfway to your dream vacation! Try saving ₹2,000 extra each month and watch out for flight sales.",
-  },
-  {
-    id: '3',
-    title: 'Car',
-    currentAmount: 4231.33,
-    targetAmount: 25000,
-    image: 'https://via.placeholder.com/600x240.png?text=Car',
-    logo: 'https://logo.clearbit.com/bankofamerica.com',
-    aiAnalysis:
-      "Great momentum! Parking this money in a high-yield account could earn an extra ₹15,000 before you buy.",
-  },
-];
+import AddGoalModal from '../../components/AddGoalModal';
+import AIInsightsDrawer from '../../components/AIInsightsDrawer';
+import { Goal, CreateGoalRequest } from '../../types';
+import { fetchGoals, createGoal } from '../../services/api';
+import LoadingSpinner from '../../components/LoadingSpinner';
+import ErrorBoundary from '../../components/ErrorBoundary';
+import { showToast } from '../../utils/toast';
 
 const GoalsScreen: React.FC = () => {
   const { theme, isDarkMode } = useContext(ThemeContext);
+  
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showAddGoalModal, setShowAddGoalModal] = useState(false);
+  const [creatingGoal, setCreatingGoal] = useState(false);
+  const [selectedGoalForInsights, setSelectedGoalForInsights] = useState<Goal | null>(null);
+  const [showInsightsDrawer, setShowInsightsDrawer] = useState(false);
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-IN', {
@@ -59,8 +32,55 @@ const GoalsScreen: React.FC = () => {
 
   const calcPct = (cur: number, tgt: number) => Math.min((cur / tgt) * 100, 100);
 
+  const loadGoals = async () => {
+    try {
+      const goalsData = await fetchGoals();
+      setGoals(goalsData);
+    } catch (error) {
+      console.error('Failed to load goals:', error);
+      showToast.error('Failed to load goals. Please check your connection and try again.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    loadGoals();
+  };
+
+  const handleCreateGoal = async (goalData: CreateGoalRequest) => {
+    setCreatingGoal(true);
+    try {
+      const newGoal = await createGoal(goalData);
+      setGoals(prevGoals => [newGoal, ...prevGoals]);
+      showToast.success('Goal created successfully!');
+    } catch (error) {
+      console.error('Failed to create goal:', error);
+      throw error; // Re-throw to let AddGoalModal handle the error
+    } finally {
+      setCreatingGoal(false);
+    }
+  };
+
+  useEffect(() => {
+    loadGoals();
+  }, []);
+
+  if (loading) {
+    return <LoadingSpinner message="Loading goals..." />;
+  }
+
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: theme.background }} contentContainerStyle={{ padding: 16 }}>
+    <ErrorBoundary>
+      <ScrollView 
+        style={{ flex: 1, backgroundColor: theme.background }} 
+        contentContainerStyle={{ padding: 16 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+      >
 
       {goals.map((goal) => {
         const pct = calcPct(goal.currentAmount, goal.targetAmount);
@@ -69,7 +89,19 @@ const GoalsScreen: React.FC = () => {
             {/* Goal Card */}
             <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
               {/* header image */}
-              <Image source={{ uri: goal.image }} style={styles.headerImage} resizeMode="cover" />
+              <Image 
+                source={{ 
+                  uri: imageErrors.has(goal.id) 
+                    ? 'https://via.placeholder.com/600x240/4F46E5/FFFFFF?text=Goal' 
+                    : goal.image 
+                }} 
+                style={styles.headerImage} 
+                resizeMode="cover"
+                onError={() => {
+                  console.warn(`Failed to load image for goal: ${goal.title}`);
+                  setImageErrors(prev => new Set([...prev, goal.id]));
+                }}
+              />
               {/* overlay logo */}
               <View style={[styles.iconWrapper, { backgroundColor: theme.card, borderColor: theme.border }]}>
                 <Image source={{ uri: goal.logo }} style={styles.bankLogo} resizeMode="contain" />
@@ -92,7 +124,7 @@ const GoalsScreen: React.FC = () => {
             </View>
 
             {/* AI analysis */}
-            <View
+            <TouchableOpacity
               style={[
                 styles.card,
                 {
@@ -101,6 +133,11 @@ const GoalsScreen: React.FC = () => {
                   marginTop: 8,
                 },
               ]}
+              onPress={() => {
+                setSelectedGoalForInsights(goal);
+                setShowInsightsDrawer(true);
+              }}
+              activeOpacity={0.8}
             >
               <View style={{ flexDirection: 'row', padding: 16 }}>
                 <MaterialCommunityIcons name="sparkles" size={18} color={theme.primary} style={{ marginRight: 8, marginTop: 2 }} />
@@ -109,17 +146,37 @@ const GoalsScreen: React.FC = () => {
                   <Text style={{ color: theme.text }}>{goal.aiAnalysis}</Text>
                 </View>
               </View>
-            </View>
+            </TouchableOpacity>
           </View>
         );
       })}
 
       {/* add new goal card */}
-      <View style={[styles.addCard, { borderColor: theme.border }]}>
+      <TouchableOpacity 
+        style={[styles.addCard, { borderColor: theme.border }]}
+        onPress={() => setShowAddGoalModal(true)}
+        activeOpacity={0.7}
+      >
         <MaterialCommunityIcons name="plus" size={28} color={theme.primary} />
         <Text style={{ fontWeight: '600', color: theme.text, marginTop: 4 }}>Add New Goal</Text>
-      </View>
+      </TouchableOpacity>
     </ScrollView>
+
+    {/* Add Goal Modal */}
+    <AddGoalModal
+      visible={showAddGoalModal}
+      onClose={() => setShowAddGoalModal(false)}
+      onSubmit={handleCreateGoal}
+      loading={creatingGoal}
+    />
+
+    {/* AI Insights Drawer */}
+    <AIInsightsDrawer
+      visible={showInsightsDrawer}
+      goal={selectedGoalForInsights}
+      onClose={() => setShowInsightsDrawer(false)}
+    />
+    </ErrorBoundary>
   );
 };
 

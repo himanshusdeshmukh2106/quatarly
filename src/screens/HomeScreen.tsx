@@ -11,6 +11,7 @@ import DebtScreen from './main/DebtScreen';
 import ExpensesScreen from './main/ExpensesScreen';
 import InvestmentsScreen from './main/InvestmentsScreen';
 import OpportunitiesScreen from './main/OpportunitiesScreen';
+import ProfileModal from '../components/ProfileModal';
 
 const renderScene = SceneMap({
   goals: GoalsScreen,
@@ -38,6 +39,7 @@ const HomeScreen = () => {
   const { theme } = useContext(ThemeContext);
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const [index, setIndex] = useState(2); // Default to Expenses
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [routes] = useState<Route[]>([
     { key: 'goals', title: 'Goals', icon: 'flag-checkered' },
     { key: 'debt', title: 'Debt', icon: 'credit-card-minus-outline' },
@@ -48,7 +50,7 @@ const HomeScreen = () => {
 
   const renderHeader = () => (
     <View style={[styles.header, { backgroundColor: theme.primary }]}>
-        <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+        <TouchableOpacity onPress={() => setProfileModalVisible(true)}>
             <Icon name="account-circle-outline" size={32} color="white" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{routes[index].title}</Text>
@@ -82,6 +84,11 @@ const HomeScreen = () => {
               })}
             </View>
           )}
+      />
+      
+      <ProfileModal 
+        visible={profileModalVisible} 
+        onClose={() => setProfileModalVisible(false)} 
       />
     </>
   );
