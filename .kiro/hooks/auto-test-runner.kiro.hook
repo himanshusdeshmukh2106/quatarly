@@ -1,0 +1,22 @@
+{
+  "enabled": true,
+  "name": "Auto Test Runner",
+  "description": "Automatically runs relevant tests when source code files are modified without requiring user permission",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "c8v2/**/*.py",
+      "C9FR/src/**/*.ts",
+      "C9FR/src/**/*.tsx",
+      "C9FR/**/*.js",
+      "test_*.py",
+      "*_test.py",
+      "**/__tests__/**/*"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Source code files have been modified. Please automatically run the appropriate tests for the changed files. For Python files in c8v2/, run Django tests. For React Native files in C9FR/, run Jest tests. For standalone test files, execute them directly. Do not ask for permission - run the tests immediately and report the results."
+  }
+}
