@@ -102,7 +102,7 @@ Image: High-quality motorcycle image
 
 ### **Environment Variables**
 ```env
-GEMINI_API_KEY=AIzaSyDqUJvV76LaoSoE2GPmqAir0YwG2-8qig0
+
 ```
 
 ### **API Endpoint**
