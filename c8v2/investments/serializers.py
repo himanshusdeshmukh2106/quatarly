@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Investment, ChartData, PriceAlert
+from .exceptions import AssetValidationException, AssetValidator
 from decimal import Decimal
 
 
@@ -12,6 +13,8 @@ class ChartDataSerializer(serializers.ModelSerializer):
 class InvestmentSerializer(serializers.ModelSerializer):
     chart_data = serializers.SerializerMethodField()
     progress_percentage = serializers.SerializerMethodField()
+    display_unit = serializers.SerializerMethodField()
+    asset_specific_fields = serializers.SerializerMethodField()
 
     class Meta:
         model = Investment
@@ -20,90 +23,155 @@ class InvestmentSerializer(serializers.ModelSerializer):
             'quantity', 'average_purchase_price', 'current_price', 'total_value',
             'daily_change', 'daily_change_percent', 'total_gain_loss', 'total_gain_loss_percent',
             'chart_data', 'last_updated', 'ai_analysis', 'risk_level', 'recommendation',
-            'logo_url', 'sector', 'market_cap', 'dividend_yield',
-            'created_at', 'updated_at', 'progress_percentage'
+            'logo_url', 'sector', 'market_cap', 'growth_rate', 'pe_ratio',
+            'fifty_two_week_high', 'fifty_two_week_low', 'volume', 'unit',
+            'data_enriched', 'enrichment_attempted', 'enrichment_error',
+            'created_at', 'updated_at', 'progress_percentage', 'display_unit',
+            'asset_specific_fields'
         ]
         read_only_fields = [
             'total_value', 'daily_change', 'daily_change_percent', 
             'total_gain_loss', 'total_gain_loss_percent', 'last_updated',
-            'created_at', 'updated_at', 'progress_percentage'
+            'created_at', 'updated_at', 'progress_percentage', 'display_unit',
+            'data_enriched', 'enrichment_attempted', 'enrichment_error'
         ]
 
     def get_chart_data(self, obj):
-        # Get last 30 days of chart data
-        chart_data = obj.historical_data.all()[:30]
-        return ChartDataSerializer(chart_data, many=True).data
+        # Only return chart data for assets that support it
+        if obj.supports_chart_data:
+            chart_data = obj.historical_data.all()[:30]
+            return ChartDataSerializer(chart_data, many=True).data
+        return []
 
     def get_progress_percentage(self, obj):
         if obj.average_purchase_price > 0:
             return float((obj.current_price - obj.average_purchase_price) / obj.average_purchase_price * 100)
         return 0.0
 
+    def get_display_unit(self, obj):
+        return obj.get_display_unit()
+
+    def get_asset_specific_fields(self, obj):
+        """Return asset-type specific fields"""
+        specific_fields = {}
+        
+        if obj.is_physical:
+            specific_fields.update({
+                'unit': obj.unit,
+            })
+        
+        if obj.is_tradeable:
+            specific_fields.update({
+                'pe_ratio': obj.pe_ratio,
+                'fifty_two_week_high': obj.fifty_two_week_high,
+                'fifty_two_week_low': obj.fifty_two_week_low,
+                'market_cap': obj.market_cap,
+                'volume': obj.volume,
+                'growth_rate': obj.growth_rate,
+            })
+        
+        return specific_fields
+
 
 class CreateInvestmentSerializer(serializers.ModelSerializer):
+    # Make symbol optional for physical assets
+    symbol = serializers.CharField(required=False, allow_blank=True)
     purchase_date = serializers.DateField(required=False)
+    
+    # Asset-type specific fields (only unit is used, others should be removed from UI)
+    unit = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = Investment
-        fields = ['symbol', 'quantity', 'average_purchase_price', 'purchase_date']
+        fields = [
+            'asset_type', 'name', 'symbol', 'exchange', 'currency',
+            'quantity', 'average_purchase_price', 'purchase_date',
+            'unit'
+        ]
+
+    def validate(self, data):
+        asset_type = data.get('asset_type', 'stock')
+        
+        # Use the AssetValidator for comprehensive validation
+        try:
+            AssetValidator.validate_asset_type(asset_type)
+            
+            if asset_type in ['stock', 'etf', 'bond', 'crypto', 'mutual_fund']:
+                AssetValidator.validate_tradeable_asset(data)
+            elif asset_type in ['gold', 'silver', 'commodity']:
+                AssetValidator.validate_physical_asset(data)
+            
+            # Validate currency if provided
+            currency = data.get('currency')
+            if currency:
+                AssetValidator.validate_currency(currency)
+                
+        except AssetValidationException as e:
+            raise serializers.ValidationError(e.message)
+        
+        return data
 
     def validate_symbol(self, value):
-        # Basic symbol validation
-        if not value or len(value) < 1:
-            raise serializers.ValidationError("Symbol is required")
-        return value.upper()
-
-    def validate_quantity(self, value):
-        if value <= 0:
-            raise serializers.ValidationError("Quantity must be greater than 0")
-        return value
-
-    def validate_average_purchase_price(self, value):
-        if value <= 0:
-            raise serializers.ValidationError("Average purchase price must be greater than 0")
+        # Basic symbol validation for tradeable assets
+        if value:
+            return value.upper()
         return value
 
     def create(self, validated_data):
         user = self.context['request'].user
-        symbol = validated_data['symbol']
+        asset_type = validated_data.get('asset_type', 'stock')
+        symbol = validated_data.get('symbol', '')
         quantity = validated_data['quantity']
         purchase_price = validated_data['average_purchase_price']
         
-        # Check if investment already exists for this user
-        existing_investment = Investment.objects.filter(user=user, symbol=symbol).first()
+        # Set default values based on asset type
+        if asset_type in ['gold', 'silver'] and not validated_data.get('unit'):
+            validated_data['unit'] = 'grams'
         
-        if existing_investment:
-            # Update existing investment (average down/up)
-            total_quantity = existing_investment.quantity + quantity
-            total_cost = (existing_investment.quantity * existing_investment.average_purchase_price) + (quantity * purchase_price)
-            new_average_price = total_cost / total_quantity
+        # Set current_price to purchase_price initially
+        validated_data['current_price'] = purchase_price
+        
+        # Check if investment already exists for this user (for tradeable assets with symbols)
+        if symbol and asset_type in ['stock', 'etf', 'bond', 'crypto', 'mutual_fund']:
+            existing_investment = Investment.objects.filter(
+                user=user, 
+                symbol=symbol, 
+                asset_type=asset_type
+            ).first()
             
-            existing_investment.quantity = total_quantity
-            existing_investment.average_purchase_price = new_average_price
-            existing_investment.save()
-            
-            return existing_investment
-        else:
-            # Create new investment
-            # In a real implementation, you'd fetch current price and company info from an API
-            investment_data = {
-                'user': user,
-                'symbol': symbol,
-                'name': f"{symbol} Company",  # Would be fetched from API
-                'quantity': quantity,
-                'average_purchase_price': purchase_price,
-                'current_price': purchase_price,  # Would be fetched from API
-                'exchange': 'NASDAQ',  # Would be determined from symbol
-                'ai_analysis': f"Initial analysis for {symbol}. Monitor performance and market trends.",
-            }
-            
-            return Investment.objects.create(**investment_data)
+            if existing_investment:
+                # Update existing investment (average down/up)
+                total_quantity = existing_investment.quantity + quantity
+                total_cost = (existing_investment.quantity * existing_investment.average_purchase_price) + (quantity * purchase_price)
+                new_average_price = total_cost / total_quantity
+                
+                existing_investment.quantity = total_quantity
+                existing_investment.average_purchase_price = new_average_price
+                existing_investment.save()
+                
+                return existing_investment
+        
+        # Create new investment
+        validated_data['user'] = user
+        
+        # Set default name if not provided
+        if not validated_data.get('name'):
+            if symbol:
+                validated_data['name'] = f"{symbol} {asset_type.title()}"
+            else:
+                validated_data['name'] = f"{asset_type.title()} Investment"
+        
+        # Set default exchange if not provided
+        if not validated_data.get('exchange') and asset_type in ['stock', 'etf']:
+            validated_data['exchange'] = 'NASDAQ'  # Default exchange
+        
+        return Investment.objects.create(**validated_data)
 
 
 class UpdateInvestmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Investment
-        fields = ['quantity', 'average_purchase_price']
+        fields = ['quantity', 'average_purchase_price', 'unit']
 
     def validate_quantity(self, value):
         if value <= 0:
@@ -142,3 +210,22 @@ class PortfolioSummarySerializer(serializers.Serializer):
     investment_count = serializers.IntegerField()
     top_performer = serializers.CharField()
     worst_performer = serializers.CharField()
+
+# Asset Suggestion Serializer for the frontend
+class AssetSuggestionSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    symbol = serializers.CharField(required=False, allow_blank=True)
+    type = serializers.CharField()
+    exchange = serializers.CharField(required=False, allow_blank=True)
+    country = serializers.CharField(required=False, allow_blank=True)
+    current_price = serializers.DecimalField(max_digits=15, decimal_places=4, required=False)
+    currency = serializers.CharField(default='USD')
+
+
+class AssetTypeStatsSerializer(serializers.Serializer):
+    """Serializer for asset type statistics"""
+    asset_type = serializers.CharField()
+    count = serializers.IntegerField()
+    total_value = serializers.DecimalField(max_digits=15, decimal_places=2)
+    total_gain_loss = serializers.DecimalField(max_digits=15, decimal_places=2)
+    percentage_of_portfolio = serializers.DecimalField(max_digits=5, decimal_places=2)

@@ -163,8 +163,11 @@ export const AddAssetModal: React.FC<AddAssetModalProps> = ({
       return;
     }
 
-    if (!quantity || !purchasePrice) {
-      Alert.alert('Error', 'Please fill in quantity and purchase price');
+    const numQuantity = parseFloat(quantity);
+    const numPurchasePrice = parseFloat(purchasePrice);
+
+    if (!quantity || !purchasePrice || numQuantity <= 0 || numPurchasePrice <= 0) {
+      Alert.alert('Error', 'Please enter a valid quantity and purchase price greater than zero.');
       return;
     }
 
@@ -172,8 +175,8 @@ export const AddAssetModal: React.FC<AddAssetModalProps> = ({
       name: assetName,
       assetType: selectedAsset.type,
       symbol: selectedAsset.symbol || '',
-      quantity: parseFloat(quantity) || 1,
-      purchasePrice: parseFloat(purchasePrice) || 0,
+      quantity: numQuantity,
+      purchasePrice: numPurchasePrice,
       purchaseDate: purchaseDate,
       currency: 'INR',
       exchange: needsExchange(selectedAsset.type) ? exchange : '',

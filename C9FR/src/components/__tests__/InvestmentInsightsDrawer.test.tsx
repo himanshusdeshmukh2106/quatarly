@@ -40,7 +40,7 @@ const mockInvestment: Investment = {
   recommendation: 'buy',
   sector: 'Technology',
   marketCap: 2800000000000,
-  dividendYield: 0.5,
+  growthRate: 12.5,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 };
@@ -122,7 +122,7 @@ describe('InvestmentInsightsDrawer', () => {
 
     expect(getByText('STOCK')).toBeTruthy(); // Asset Type
     expect(getByText('Technology')).toBeTruthy(); // Sector
-    expect(getByText('0.50%')).toBeTruthy(); // Dividend Yield
+    expect(getByText('12.5%')).toBeTruthy(); // Growth Rate
   });
 
   it('displays risk level and recommendation', () => {

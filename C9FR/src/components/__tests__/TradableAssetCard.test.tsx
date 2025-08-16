@@ -91,7 +91,7 @@ const mockStockAsset: TradableAsset = {
   logoUrl: 'https://example.com/aapl-logo.png',
   sector: 'Technology',
   marketCap: 2000000000,
-  dividendYield: 2.5,
+  growthRate: 12.5,
 };
 
 const mockBondAsset: TradableAsset = {
@@ -102,7 +102,7 @@ const mockBondAsset: TradableAsset = {
   symbol: 'UST10Y',
   yieldToMaturity: 4.5,
   maturityDate: '2034-01-01',
-  dividendYield: undefined,
+  growthRate: undefined,
 };
 
 const renderWithTheme = (component: React.ReactElement) => {
@@ -141,8 +141,8 @@ describe('TradableAssetCard', () => {
         <TradableAssetCard asset={mockStockAsset} />
       );
 
-      expect(getByText('Dividend Yield')).toBeTruthy();
-      expect(getByText('2.50%')).toBeTruthy();
+      expect(getByText('Growth Rate')).toBeTruthy();
+      expect(getByText('12.5%')).toBeTruthy();
       expect(getByText('Market Cap')).toBeTruthy();
       expect(getByText('$2,000,000,000')).toBeTruthy();
     });

@@ -211,40 +211,7 @@ export const EditAssetModal: React.FC<EditAssetModalProps> = ({
         </View>
       </View>
 
-      {physicalAsset.assetType === 'gold' || physicalAsset.assetType === 'silver' ? (
-        <View style={styles.fieldGroup}>
-          <Text style={[styles.label, { color: theme.text }]}>Purity</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
-            value={formData.purity || ''}
-            onChangeText={(text) => setFormData({ ...formData, purity: text })}
-            placeholder="e.g., 24K, 22K, 999"
-            placeholderTextColor={theme.textMuted}
-          />
-        </View>
-      ) : null}
 
-      <View style={styles.fieldGroup}>
-        <Text style={[styles.label, { color: theme.text }]}>Storage Location</Text>
-        <TextInput
-          style={[styles.input, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
-          value={formData.storage || ''}
-          onChangeText={(text) => setFormData({ ...formData, storage: text })}
-          placeholder="e.g., Home safe, Bank locker"
-          placeholderTextColor={theme.textMuted}
-        />
-      </View>
-
-      <View style={styles.fieldGroup}>
-        <Text style={[styles.label, { color: theme.text }]}>Certificate Number</Text>
-        <TextInput
-          style={[styles.input, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
-          value={formData.certificate || ''}
-          onChangeText={(text) => setFormData({ ...formData, certificate: text })}
-          placeholder="Certificate or serial number"
-          placeholderTextColor={theme.textMuted}
-        />
-      </View>
     </>
   );
 

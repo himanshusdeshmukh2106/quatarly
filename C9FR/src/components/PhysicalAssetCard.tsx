@@ -1,23 +1,19 @@
-import React, { useState, useContext } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  Modal,
-  TextInput,
-  Alert,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import Svg, { Line } from 'react-native-svg';
 import { PhysicalAsset } from '../types';
-import { ThemeContext } from '../context/ThemeContext';
 
 interface PhysicalAssetCardProps {
   asset: PhysicalAsset;
   onPress?: () => void;
   onLongPress?: () => void;
   onInsightsPress?: () => void;
-  onUpdateValue?: (assetId: string, newMarketPrice: number) => void;
+  onUpdateValue?: (assetId: string, newValue: number) => void;
   style?: any;
 }
 
@@ -25,489 +21,314 @@ export const PhysicalAssetCard: React.FC<PhysicalAssetCardProps> = ({
   asset,
   onPress,
   onLongPress,
-  onInsightsPress,
-  onUpdateValue,
   style,
 }) => {
-  const { theme } = useContext(ThemeContext);
-  const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const [newMarketPrice, setNewMarketPrice] = useState(
-    asset.currentMarketPrice?.toString() || asset.purchasePrice.toString()
-  );
-
   const formatCurrency = (amount: number) => {
-    return `₹${amount.toLocaleString()}`;
-  };
-
-  const formatPercentage = (percentage: number) => {
-    const sign = percentage >= 0 ? '+' : '';
-    return `${sign}${percentage.toFixed(2)}%`;
+    return `₹${amount.toFixed(2)}`;
   };
 
   const getPerformanceColor = (value: number) => {
-    if (value > 0) return '#10B981'; // Green for positive
-    if (value < 0) return '#EF4444'; // Red for negative
+    if (value > 0) return '#22c55e'; // Green for positive
+    if (value < 0) return '#ef4444'; // Red for negative
     return '#6B7280'; // Gray for neutral
   };
 
-  const getAssetIcon = (assetType: string) => {
-    const iconMap: Record<string, string> = {
-      gold: 'star',
-      silver: 'star-border',
-      commodity: 'grain',
-    };
-    return iconMap[assetType] || 'help';
-  };
-
-  const getAssetColor = (assetType: string) => {
-    const colorMap: Record<string, string> = {
-      gold: '#F59E0B',
-      silver: '#9CA3AF',
-      commodity: '#8B5CF6',
-    };
-    return colorMap[assetType] || '#6B7280';
-  };
-
-  const handleUpdateValue = () => {
-    const price = parseFloat(newMarketPrice);
-    if (isNaN(price) || price <= 0) {
-      Alert.alert('Invalid Price', 'Please enter a valid price');
-      return;
+  // Generate mock chart data for visual consistency
+  const generateChartData = (basePrice: number, isPositive: boolean) => {
+    const data = [];
+    let currentPrice = basePrice * 1.2; // Start higher for downward trend
+    
+    for (let i = 0; i < 12; i++) {
+      data.push(currentPrice);
+      // Create a general downward trend with some variation
+      const change = isPositive ? 
+        (Math.random() - 0.3) * (basePrice * 0.02) : // Slight upward bias for positive
+        (Math.random() - 0.7) * (basePrice * 0.02);   // Downward bias for negative
+      currentPrice += change;
     }
-
-    onUpdateValue?.(asset.id, price);
-    setShowUpdateModal(false);
+    
+    // Ensure the last point matches the current price
+    data[data.length - 1] = basePrice;
+    return data;
   };
 
-  const calculateCurrentValue = () => {
-    const marketPrice = asset.currentMarketPrice || asset.purchasePrice;
-    return asset.quantity * marketPrice;
+  // Generate AI insight based on asset performance
+  const generateInsight = (asset: PhysicalAsset) => {
+    const isPositive = asset.totalGainLoss >= 0;
+    const assetTypeText = asset.assetType === 'gold' ? 'gold holdings' :
+                        asset.assetType === 'silver' ? 'silver holdings' :
+                        `${asset.assetType} holdings`;
+    
+    if (isPositive) {
+      return `${asset.name} ${assetTypeText} showed positive performance with strong commodity fundamentals and favorable market conditions supporting continued value appreciation in the current economic environment.`;
+    } else {
+      return `${asset.name} ${assetTypeText} experienced some volatility due to market conditions and commodity-specific factors, but maintains solid underlying value with potential for recovery in the medium term.`;
+    }
   };
 
-  const calculateGainLoss = () => {
-    const currentValue = calculateCurrentValue();
-    const purchaseValue = asset.quantity * asset.purchasePrice;
-    return currentValue - purchaseValue;
+  const currentPrice = asset.currentMarketPrice || asset.purchasePrice;
+  const change = asset.totalGainLoss || 0;
+  const changePercent = asset.totalGainLossPercent || 0;
+  const isNegative = change < 0;
+  const changeColor = getPerformanceColor(change);
+  
+  // Generate symbol from asset name
+  const symbol = asset.name.split(' ').map(word => word.charAt(0)).join('').toUpperCase().substring(0, 2);
+  const chartData = generateChartData(currentPrice, change >= 0);
+
+  // Mock stats for physical assets
+  const getVolume = () => {
+    const baseVolume = Math.floor(asset.totalValue / 1000);
+    return `${(baseVolume / 1000).toFixed(1)}K`;
   };
 
-  const calculateGainLossPercent = () => {
-    const purchaseValue = asset.quantity * asset.purchasePrice;
-    const gainLoss = calculateGainLoss();
-    return purchaseValue > 0 ? (gainLoss / purchaseValue) * 100 : 0;
+  const getMarketCap = () => {
+    const baseCap = asset.totalValue * 50; // Physical assets have smaller "market caps"
+    if (baseCap > 1000000000) {
+      return `${(baseCap / 1000000000).toFixed(1)}B`;
+    }
+    return `${(baseCap / 1000000).toFixed(1)}M`;
   };
 
-  const renderUpdateModal = () => (
-    <Modal
-      visible={showUpdateModal}
-      transparent
-      animationType="fade"
-      onRequestClose={() => setShowUpdateModal(false)}
+  return (
+    <TouchableOpacity
+      style={[styles.exactReplicaCard, style]}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      activeOpacity={0.7}
     >
-      <View style={styles.modalOverlay}>
-        <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
-          <View style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>
-              Update Market Price
-            </Text>
-            <TouchableOpacity
-              onPress={() => setShowUpdateModal(false)}
-              style={styles.closeButton}
-            >
-              <Icon name="close" size={24} color={theme.textMuted} />
-            </TouchableOpacity>
+      {/* Exact Header Layout - Matching Placeholder Cards */}
+      <View style={styles.pixelPerfectHeader}>
+        <View style={styles.pixelPerfectLeft}>
+          <View style={styles.pixelPerfectIcon}>
+            <Text style={styles.pixelPerfectIconText}>{symbol}</Text>
           </View>
-
-          <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>
-            {asset.name} - Current: {formatCurrency(asset.currentMarketPrice || asset.purchasePrice)}/{asset.unit}
+          <View style={styles.pixelPerfectCompanyInfo}>
+            <Text style={styles.pixelPerfectCompanyName} numberOfLines={1}>
+              {asset.name}
+            </Text>
+            <Text style={styles.pixelPerfectSymbol}>{asset.quantity} {asset.unit}</Text>
+          </View>
+        </View>
+        <View style={styles.pixelPerfectRight}>
+          <Text style={styles.pixelPerfectPrice}>
+            {formatCurrency(currentPrice)}
           </Text>
+          <Text style={[styles.pixelPerfectChange, { color: changeColor }]}>
+            {isNegative ? '↓' : '↑'} {Math.abs(changePercent).toFixed(2)}%
+          </Text>
+        </View>
+      </View>
 
-          <View style={styles.inputContainer}>
-            <Text style={[styles.inputLabel, { color: theme.text }]}>
-              New Market Price (per {asset.unit})
-            </Text>
-            <TextInput
-              style={[
-                styles.priceInput,
-                { 
-                  backgroundColor: theme.background,
-                  borderColor: theme.border,
-                  color: theme.text 
-                }
-              ]}
-              value={newMarketPrice}
-              onChangeText={setNewMarketPrice}
-              keyboardType="numeric"
-              placeholder="Enter new price"
-              placeholderTextColor={theme.textMuted}
-              autoFocus
-            />
+      {/* Chart and Stats Layout - Pixel Perfect */}
+      <View style={styles.pixelPerfectBody}>
+        {/* Left Side - Chart with Y-axis */}
+        <View style={styles.pixelPerfectChartSection}>
+          {/* Y-axis labels */}
+          <View style={styles.pixelPerfectYAxis}>
+            <Text style={styles.pixelPerfectYLabel}>{Math.round(currentPrice * 1.4)}</Text>
+            <Text style={styles.pixelPerfectYLabel}>{Math.round(currentPrice * 1.2)}</Text>
+            <Text style={styles.pixelPerfectYLabel}>{Math.round(currentPrice)}</Text>
           </View>
+          
+          {/* Chart area */}
+          <View style={styles.pixelPerfectChartContainer}>
+            <View style={styles.pixelPerfectChart}>
+              {/* Simple line chart to match the image exactly */}
+              <Svg width={140} height={70}>
+                {/* Chart line */}
+                {chartData.map((point: number, idx: number) => {
+                  if (idx === chartData.length - 1) return null;
+                  const x1 = (idx / (chartData.length - 1)) * 140;
+                  const x2 = ((idx + 1) / (chartData.length - 1)) * 140;
+                  const minPrice = Math.min(...chartData);
+                  const maxPrice = Math.max(...chartData);
+                  const priceRange = maxPrice - minPrice || 1;
+                  const y1 = 70 - ((point - minPrice) / priceRange) * 70;
+                  const y2 = 70 - ((chartData[idx + 1] - minPrice) / priceRange) * 70;
+                  
+                  return (
+                    <Line
+                      key={idx}
+                      x1={x1}
+                      y1={y1}
+                      x2={x2}
+                      y2={y2}
+                      stroke={changeColor}
+                      strokeWidth="2.5"
+                    />
+                  );
+                })}
+              </Svg>
+            </View>
+            <Text style={styles.pixelPerfectTime}>6:00 PM</Text>
+          </View>
+        </View>
 
-          <View style={styles.modalButtons}>
-            <TouchableOpacity
-              style={[styles.cancelButton, { borderColor: theme.border }]}
-              onPress={() => setShowUpdateModal(false)}
-            >
-              <Text style={[styles.cancelButtonText, { color: theme.textMuted }]}>
-                Cancel
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={styles.updateButton}
-              onPress={handleUpdateValue}
-            >
-              <Text style={styles.updateButtonText}>Update</Text>
-            </TouchableOpacity>
+        {/* Right Side - Stats Exactly Like Placeholder Cards */}
+        <View style={styles.pixelPerfectStatsSection}>
+          <View style={styles.pixelPerfectStatRow}>
+            <Text style={styles.pixelPerfectStatLabel}>Volume</Text>
+            <Text style={styles.pixelPerfectStatValue}>{getVolume()}</Text>
+          </View>
+          <View style={styles.pixelPerfectStatRow}>
+            <Text style={styles.pixelPerfectStatLabel}>Market Cap</Text>
+            <Text style={styles.pixelPerfectStatValue}>{getMarketCap()}</Text>
+          </View>
+          <View style={styles.pixelPerfectStatRow}>
+            <Text style={styles.pixelPerfectStatLabel}>Purchase Price</Text>
+            <Text style={styles.pixelPerfectStatValue}>₹{asset.purchasePrice.toFixed(2)}</Text>
+          </View>
+          <View style={styles.pixelPerfectStatRow}>
+            <Text style={styles.pixelPerfectStatLabel}>Quantity</Text>
+            <Text style={styles.pixelPerfectStatValue}>{asset.quantity} {asset.unit}</Text>
           </View>
         </View>
       </View>
-    </Modal>
-  );
 
-  return (
-    <>
-      <TouchableOpacity
-        style={[styles.card, { backgroundColor: theme.card }, style]}
-        onPress={onPress}
-        onLongPress={onLongPress}
-        activeOpacity={0.7}
-      >
-        {/* Asset Header */}
-        <View style={styles.assetHeader}>
-          <View style={styles.assetInfo}>
-            <View style={[
-              styles.assetIconContainer,
-              { backgroundColor: `${getAssetColor(asset.assetType)}20` }
-            ]}>
-              <Icon 
-                name={getAssetIcon(asset.assetType)} 
-                size={28} 
-                color={getAssetColor(asset.assetType)} 
-              />
-            </View>
-            
-            <View style={styles.assetDetails}>
-              <Text style={[styles.assetName, { color: theme.text }]}>{asset.name}</Text>
-              <Text style={[styles.assetQuantity, { color: theme.textMuted }]}>
-                {asset.quantity.toLocaleString()} {asset.unit}
-              </Text>
-              {asset.purity && (
-                <Text style={[styles.assetPurity, { color: theme.textMuted }]}>
-                  Purity: {asset.purity}
-                </Text>
-              )}
-            </View>
-          </View>
-          
-          <View style={styles.assetValue}>
-            <Text style={[styles.totalValue, { color: theme.text }]}>
-              {formatCurrency(calculateCurrentValue())}
-            </Text>
-            <Text style={[styles.unitPrice, { color: theme.textMuted }]}>
-              @ {formatCurrency(asset.currentMarketPrice || asset.purchasePrice)}/{asset.unit}
-            </Text>
-          </View>
-        </View>
-
-        {/* Price Information */}
-        <View style={styles.priceSection}>
-          <View style={styles.priceItem}>
-            <Text style={[styles.priceLabel, { color: theme.textMuted }]}>Purchase Price</Text>
-            <Text style={[styles.priceValue, { color: theme.text }]}>
-              {formatCurrency(asset.purchasePrice)}/{asset.unit}
-            </Text>
-          </View>
-          
-          {asset.currentMarketPrice && asset.currentMarketPrice !== asset.purchasePrice && (
-            <View style={styles.priceItem}>
-              <Text style={[styles.priceLabel, { color: theme.textMuted }]}>Market Price</Text>
-              <Text style={[styles.priceValue, { color: theme.text }]}>
-                {formatCurrency(asset.currentMarketPrice)}/{asset.unit}
-              </Text>
-            </View>
-          )}
-          
-          <View style={styles.priceItem}>
-            <Text style={[styles.priceLabel, { color: theme.textMuted }]}>Total P&L</Text>
-            <Text style={[
-              styles.priceValue,
-              { color: getPerformanceColor(calculateGainLoss()) }
-            ]}>
-              {formatCurrency(calculateGainLoss())} 
-              ({formatPercentage(calculateGainLossPercent())})
-            </Text>
-          </View>
-        </View>
-
-        {/* Asset Details */}
-        <View style={styles.detailsSection}>
-          {asset.storage && (
-            <View style={styles.detailItem}>
-              <Icon name="location-on" size={16} color={theme.textMuted} />
-              <Text style={[styles.detailText, { color: theme.textMuted }]}>
-                Storage: {asset.storage}
-              </Text>
-            </View>
-          )}
-          
-          {asset.certificate && (
-            <View style={styles.detailItem}>
-              <Icon name="verified" size={16} color={theme.textMuted} />
-              <Text style={[styles.detailText, { color: theme.textMuted }]}>
-                Certificate: {asset.certificate}
-              </Text>
-            </View>
-          )}
-          
-          {asset.manuallyUpdated && (
-            <View style={styles.detailItem}>
-              <Icon name="edit" size={16} color="#F59E0B" />
-              <Text style={[styles.detailText, { color: '#F59E0B' }]}>
-                Manually updated
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* Update Price Button */}
-        <TouchableOpacity
-          style={[styles.updatePriceButton, { backgroundColor: theme.cardElevated }]}
-          onPress={() => setShowUpdateModal(true)}
-        >
-          <Icon name="edit" size={16} color={theme.primary} />
-          <Text style={[styles.updatePriceText, { color: theme.primary }]}>
-            Update Market Price
-          </Text>
-        </TouchableOpacity>
-
-        {/* Footer */}
-        <View style={[styles.footer, { borderTopColor: theme.border }]}>
-          <Text style={[styles.lastUpdated, { color: theme.textMuted }]}>
-            Updated {new Date(asset.lastUpdated).toLocaleDateString()}
-          </Text>
-          
-          <TouchableOpacity 
-            style={[styles.insightsButton, { backgroundColor: theme.cardElevated }]}
-            onPress={onInsightsPress}
-          >
-            <Icon name="insights" size={16} color={theme.textMuted} />
-            <Text style={[styles.insightsButtonText, { color: theme.textMuted }]}>
-              AI Insights
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
-
-      {renderUpdateModal()}
-    </>
+      {/* Insight Text - Pixel Perfect */}
+      <View style={styles.pixelPerfectInsightContainer}>
+        <Text style={styles.pixelPerfectInsightText}>
+          {generateInsight(asset)}
+        </Text>
+      </View>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  assetHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  assetInfo: {
-    flexDirection: 'row',
-    flex: 1,
-    marginRight: 12,
-  },
-  assetIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  assetDetails: {
-    flex: 1,
-  },
-  assetName: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  assetQuantity: {
-    fontSize: 14,
-    marginBottom: 2,
-  },
-  assetPurity: {
-    fontSize: 12,
-  },
-  assetValue: {
-    alignItems: 'flex-end',
-  },
-  totalValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  unitPrice: {
-    fontSize: 12,
-  },
-  priceSection: {
-    marginBottom: 16,
-  },
-  priceItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  priceLabel: {
-    fontSize: 14,
-  },
-  priceValue: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  detailsSection: {
-    marginBottom: 16,
-  },
-  detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  detailText: {
-    fontSize: 13,
-    marginLeft: 8,
-  },
-  updatePriceButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+  // Exact Replica Styles to Match Placeholder Investment Cards
+  exactReplicaCard: {
+    backgroundColor: '#1a1a1a',
     borderRadius: 12,
-    marginBottom: 16,
-  },
-  updatePriceText: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-  },
-  lastUpdated: {
-    fontSize: 12,
-  },
-  insightsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-  },
-  insightsButtonText: {
-    fontSize: 12,
-    marginLeft: 4,
-    fontWeight: '500',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    width: '100%',
-    maxWidth: 400,
-    borderRadius: 16,
-    padding: 20,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    padding: 16,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 4,
     },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
   },
-  modalHeader: {
+  pixelPerfectHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  closeButton: {
-    padding: 4,
-  },
-  modalSubtitle: {
-    fontSize: 14,
     marginBottom: 20,
   },
-  inputContainer: {
-    marginBottom: 24,
+  pixelPerfectLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
-  inputLabel: {
+  pixelPerfectIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 6,
+    backgroundColor: '#374151',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  pixelPerfectIconText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  pixelPerfectCompanyInfo: {
+    flex: 1,
+  },
+  pixelPerfectCompanyName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginBottom: 2,
+  },
+  pixelPerfectSymbol: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#9ca3af',
+  },
+  pixelPerfectRight: {
+    alignItems: 'flex-end',
+  },
+  pixelPerfectPrice: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#ffffff',
+    marginBottom: 2,
+  },
+  pixelPerfectChange: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  pixelPerfectBody: {
+    flexDirection: 'row',
+    marginBottom: 20,
+  },
+  pixelPerfectChartSection: {
+    flex: 1,
+    flexDirection: 'row',
+    height: 100,
+    marginRight: 20,
+  },
+  pixelPerfectYAxis: {
+    width: 30,
+    justifyContent: 'space-between',
+    paddingVertical: 5,
+  },
+  pixelPerfectYLabel: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: '#9ca3af',
+  },
+  pixelPerfectChartContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  pixelPerfectChart: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  pixelPerfectTime: {
+    position: 'absolute',
+    bottom: -15,
+    left: 4,
+    fontSize: 10,
+    fontWeight: '500',
+    color: '#9ca3af',
+  },
+  pixelPerfectStatsSection: {
+    width: 120,
+    justifyContent: 'space-between',
+  },
+  pixelPerfectStatRow: {
     marginBottom: 8,
   },
-  priceInput: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    fontSize: 16,
+  pixelPerfectStatLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#9ca3af',
+    marginBottom: 2,
   },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 16,
+  pixelPerfectStatValue: {
+    fontSize: 13,
     fontWeight: '600',
+    color: '#ffffff',
   },
-  updateButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    backgroundColor: '#10B981',
-    alignItems: 'center',
+  pixelPerfectInsightContainer: {
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#374151',
   },
-  updateButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+  pixelPerfectInsightText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '400',
+    color: '#d1d5db',
   },
 });
 

@@ -271,13 +271,15 @@ const InvestmentInsightsDrawer: React.FC<InvestmentInsightsDrawerProps> = ({
                 </View>
               )}
               
-              {investment.dividendYield && (
+              {investment.growthRate && (
                 <View style={styles.detailRow}>
                   <Text style={[styles.detailLabel, { color: theme.textMuted }]}>
-                    Dividend Yield:
+                    Growth Rate:
                   </Text>
-                  <Text style={[styles.detailValue, { color: theme.text }]}>
-                    {investment.dividendYield.toFixed(2)}%
+                  <Text style={[styles.detailValue, { 
+                    color: investment.growthRate > 0 ? '#22c55e' : investment.growthRate < 0 ? '#ef4444' : theme.text 
+                  }]}>
+                    {investment.growthRate.toFixed(1)}%
                   </Text>
                 </View>
               )}
