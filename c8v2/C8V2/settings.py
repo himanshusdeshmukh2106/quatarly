@@ -195,6 +195,23 @@ REST_AUTH = {
     'USER_DETAILS_SERIALIZER': 'users.serializers.CustomUserDetailsSerializer',
 }
 
+# Perplexity API settings
+PERPLEXITY_API_KEY = os.getenv('PERPLEXITY_API_KEY')
+
+# FMP API settings
+FMP_API_KEY = os.getenv('FMP_API_KEY')
+
+# Finnhub API settings
+FINNHUB_API_KEY = os.getenv('FINNHUB_API_KEY')
+
+# Celery Configuration
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,

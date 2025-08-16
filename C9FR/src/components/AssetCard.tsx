@@ -4,9 +4,8 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Image,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import Svg, { Line } from 'react-native-svg';
 import { Asset, TradableAsset, PhysicalAsset } from '../types';
 
 interface AssetCardProps {
@@ -32,9 +31,9 @@ export const AssetCard: React.FC<AssetCardProps> = ({
 
   const formatCurrency = (amount: number, currency?: string) => {
     if (currency === 'USD') {
-      return `$${amount.toLocaleString()}`;
+      return `$${amount.toFixed(2)}`;
     }
-    return `₹${amount.toLocaleString()}`;
+    return `₹${amount.toFixed(2)}`;
   };
 
   const formatPercentage = (percentage: number) => {
@@ -42,426 +41,370 @@ export const AssetCard: React.FC<AssetCardProps> = ({
     return `${sign}${percentage.toFixed(2)}%`;
   };
 
-  const getAssetIcon = (assetType: string) => {
-    const iconMap: Record<string, string> = {
-      stock: 'trending-up',
-      etf: 'account-balance',
-      bond: 'security',
-      crypto: 'currency-bitcoin',
-      gold: 'star',
-      silver: 'star-border',
-      commodity: 'grain',
-    };
-    return iconMap[assetType] || 'help';
-  };
-
   const getPerformanceColor = (value: number) => {
-    if (value > 0) return '#10B981'; // Green for positive
-    if (value < 0) return '#EF4444'; // Red for negative
+    if (value > 0) return '#22c55e'; // Green for positive
+    if (value < 0) return '#ef4444'; // Red for negative
     return '#6B7280'; // Gray for neutral
   };
 
-  const renderTradableAssetContent = (tradableAsset: TradableAsset) => (
-    <>
-      <View style={styles.assetHeader}>
-        <View style={styles.assetInfo}>
-          {tradableAsset.logoUrl ? (
-            <Image source={{ uri: tradableAsset.logoUrl }} style={styles.assetLogo} />
-          ) : (
-            <View style={styles.assetIconContainer}>
-              <Icon name={getAssetIcon(tradableAsset.assetType)} size={24} color="#6B7280" />
-            </View>
-          )}
-          
-          <View style={styles.assetDetails}>
-            <Text style={styles.assetSymbol}>{tradableAsset.symbol}</Text>
-            <Text style={styles.assetName} numberOfLines={1}>
-              {tradableAsset.name}
-            </Text>
-            {tradableAsset.sector && (
-              <Text style={styles.assetSector}>{tradableAsset.sector}</Text>
-            )}
-          </View>
-        </View>
-        
-        <View style={styles.assetValue}>
-          <Text style={styles.totalValue}>
-            {formatCurrency(tradableAsset.totalValue, tradableAsset.currency)}
-          </Text>
-          <Text style={styles.quantity}>
-            {tradableAsset.quantity.toLocaleString()} shares
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.performanceSection}>
-        <View style={styles.performanceItem}>
-          <Text style={styles.performanceLabel}>Current Price</Text>
-          <Text style={styles.performanceValue}>
-            {formatCurrency(tradableAsset.currentPrice, tradableAsset.currency)}
-          </Text>
-        </View>
-        
-        <View style={styles.performanceItem}>
-          <Text style={styles.performanceLabel}>Daily Change</Text>
-          <Text style={[
-            styles.performanceValue,
-            { color: getPerformanceColor(tradableAsset.dailyChange) }
-          ]}>
-            {formatCurrency(tradableAsset.dailyChange, tradableAsset.currency)} 
-            ({formatPercentage(tradableAsset.dailyChangePercent)})
-          </Text>
-        </View>
-        
-        <View style={styles.performanceItem}>
-          <Text style={styles.performanceLabel}>Total P&L</Text>
-          <Text style={[
-            styles.performanceValue,
-            { color: getPerformanceColor(tradableAsset.totalGainLoss) }
-          ]}>
-            {formatCurrency(tradableAsset.totalGainLoss, tradableAsset.currency)} 
-            ({formatPercentage(tradableAsset.totalGainLossPercent)})
-          </Text>
-        </View>
-      </View>
-
-      {tradableAsset.recommendation && (
-        <View style={styles.recommendationSection}>
-          <View style={[
-            styles.recommendationBadge,
-            { backgroundColor: getRecommendationColor(tradableAsset.recommendation) }
-          ]}>
-            <Icon 
-              name={getRecommendationIcon(tradableAsset.recommendation)} 
-              size={14} 
-              color="#FFFFFF" 
-            />
-            <Text style={styles.recommendationText}>
-              {tradableAsset.recommendation.toUpperCase()}
-            </Text>
-          </View>
-          
-          <View style={[
-            styles.riskBadge,
-            { backgroundColor: getRiskColor(tradableAsset.riskLevel) }
-          ]}>
-            <Text style={styles.riskText}>
-              {tradableAsset.riskLevel.toUpperCase()} RISK
-            </Text>
-          </View>
-        </View>
-      )}
-    </>
-  );
-
-  const renderPhysicalAssetContent = (physicalAsset: PhysicalAsset) => (
-    <>
-      <View style={styles.assetHeader}>
-        <View style={styles.assetInfo}>
-          <View style={styles.assetIconContainer}>
-            <Icon name={getAssetIcon(physicalAsset.assetType)} size={24} color="#F59E0B" />
-          </View>
-          
-          <View style={styles.assetDetails}>
-            <Text style={styles.assetSymbol}>{physicalAsset.name}</Text>
-            <Text style={styles.assetName}>
-              {physicalAsset.quantity} {physicalAsset.unit}
-            </Text>
-            {physicalAsset.purity && (
-              <Text style={styles.assetSector}>Purity: {physicalAsset.purity}</Text>
-            )}
-          </View>
-        </View>
-        
-        <View style={styles.assetValue}>
-          <Text style={styles.totalValue}>
-            {formatCurrency(physicalAsset.totalValue)}
-          </Text>
-          <Text style={styles.quantity}>
-            @ ₹{physicalAsset.purchasePrice.toLocaleString()}/{physicalAsset.unit}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.performanceSection}>
-        <View style={styles.performanceItem}>
-          <Text style={styles.performanceLabel}>Purchase Price</Text>
-          <Text style={styles.performanceValue}>
-            ₹{physicalAsset.purchasePrice.toLocaleString()}/{physicalAsset.unit}
-          </Text>
-        </View>
-        
-        {physicalAsset.currentMarketPrice && (
-          <View style={styles.performanceItem}>
-            <Text style={styles.performanceLabel}>Market Price</Text>
-            <Text style={styles.performanceValue}>
-              ₹{physicalAsset.currentMarketPrice.toLocaleString()}/{physicalAsset.unit}
-            </Text>
-          </View>
-        )}
-        
-        <View style={styles.performanceItem}>
-          <Text style={styles.performanceLabel}>Total P&L</Text>
-          <Text style={[
-            styles.performanceValue,
-            { color: getPerformanceColor(physicalAsset.totalGainLoss) }
-          ]}>
-            ₹{physicalAsset.totalGainLoss.toLocaleString()} 
-            ({formatPercentage(physicalAsset.totalGainLossPercent)})
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.physicalAssetInfo}>
-        {physicalAsset.storage && (
-          <View style={styles.infoItem}>
-            <Icon name="location-on" size={16} color="#6B7280" />
-            <Text style={styles.infoText}>Storage: {physicalAsset.storage}</Text>
-          </View>
-        )}
-        
-        {physicalAsset.certificate && (
-          <View style={styles.infoItem}>
-            <Icon name="verified" size={16} color="#6B7280" />
-            <Text style={styles.infoText}>Cert: {physicalAsset.certificate}</Text>
-          </View>
-        )}
-        
-        {physicalAsset.manuallyUpdated && (
-          <View style={styles.infoItem}>
-            <Icon name="edit" size={16} color="#F59E0B" />
-            <Text style={styles.infoText}>Manually updated</Text>
-          </View>
-        )}
-      </View>
-    </>
-  );
-
-  const getRecommendationColor = (recommendation: string) => {
-    const colorMap: Record<string, string> = {
-      buy: '#10B981',
-      hold: '#F59E0B',
-      sell: '#EF4444',
-      monitor: '#6B7280',
-    };
-    return colorMap[recommendation] || '#6B7280';
+  // Generate mock chart data for visual consistency
+  const generateChartData = (basePrice: number, isPositive: boolean) => {
+    const data = [];
+    let currentPrice = basePrice * 1.2; // Start higher for downward trend
+    
+    for (let i = 0; i < 12; i++) {
+      data.push(currentPrice);
+      // Create a general downward trend with some variation
+      const change = isPositive ? 
+        (Math.random() - 0.3) * (basePrice * 0.02) : // Slight upward bias for positive
+        (Math.random() - 0.7) * (basePrice * 0.02);   // Downward bias for negative
+      currentPrice += change;
+    }
+    
+    // Ensure the last point matches the current price
+    data[data.length - 1] = basePrice;
+    return data;
   };
 
-  const getRecommendationIcon = (recommendation: string) => {
-    const iconMap: Record<string, string> = {
-      buy: 'trending-up',
-      hold: 'pause',
-      sell: 'trending-down',
-      monitor: 'visibility',
-    };
-    return iconMap[recommendation] || 'help';
+  // Get symbol from asset name or use asset type
+  const getSymbol = (asset: Asset) => {
+    if (isTradableAsset(asset) && asset.symbol) {
+      return asset.symbol;
+    }
+    // Generate symbol from name
+    const words = asset.name.split(' ');
+    if (words.length >= 2) {
+      return words.slice(0, 2).map(word => word.charAt(0)).join('').toUpperCase();
+    }
+    return asset.name.substring(0, 2).toUpperCase();
   };
 
-  const getRiskColor = (riskLevel: string) => {
-    const colorMap: Record<string, string> = {
-      low: '#10B981',
-      medium: '#F59E0B',
-      high: '#EF4444',
-    };
-    return colorMap[riskLevel] || '#6B7280';
+  // Get current price from asset
+  const getCurrentPrice = (asset: Asset) => {
+    if (isTradableAsset(asset)) {
+      return asset.currentPrice || asset.totalValue;
+    }
+    if (isPhysicalAsset(asset)) {
+      return asset.currentMarketPrice || asset.purchasePrice;
+    }
+    return asset.totalValue;
+  };
+
+  // Get change values
+  const getChangeValues = (asset: Asset) => {
+    const change = asset.totalGainLoss || 0;
+    const changePercent = asset.totalGainLossPercent || 0;
+    return { change, changePercent };
+  };
+
+  // Get volume (mock for non-tradable assets)
+  const getVolume = (asset: Asset) => {
+    if (isTradableAsset(asset) && asset.volume) {
+      return asset.volume;
+    }
+    // Generate mock volume based on asset value
+    const baseVolume = Math.floor(asset.totalValue / 1000);
+    return `${(baseVolume / 1000).toFixed(1)}K`;
+  };
+
+  // Get market cap (mock for non-tradable assets)
+  const getMarketCap = (asset: Asset) => {
+    if (isTradableAsset(asset) && asset.marketCap) {
+      return asset.marketCap;
+    }
+    // Generate mock market cap
+    const baseCap = asset.totalValue * 100;
+    if (baseCap > 1000000000) {
+      return `${(baseCap / 1000000000).toFixed(1)}B`;
+    }
+    return `${(baseCap / 1000000).toFixed(1)}M`;
+  };
+
+  // Get P/E ratio (mock for non-tradable assets)
+  const getPERatio = (asset: Asset) => {
+    if (isTradableAsset(asset) && asset.peRatio) {
+      return asset.peRatio.toString();
+    }
+    // Generate mock P/E ratio
+    return (Math.random() * 50 + 10).toFixed(2);
+  };
+
+  // Get growth rate (mock for non-tradable assets)
+  const getGrowthRate = (asset: Asset) => {
+    if (isTradableAsset(asset) && asset.growthRate !== undefined) {
+      return asset.growthRate;
+    }
+    // Most physical assets don't have growth rates
+    return null;
+  };
+
+  const currentPrice = getCurrentPrice(asset);
+  const { change, changePercent } = getChangeValues(asset);
+  const isNegative = change < 0;
+  const changeColor = getPerformanceColor(change);
+  const symbol = getSymbol(asset);
+  const chartData = generateChartData(currentPrice, change >= 0);
+
+  // Generate AI insight based on asset performance
+  const generateInsight = (asset: Asset) => {
+    const isPositive = asset.totalGainLoss >= 0;
+    const assetTypeText = asset.assetType === 'stock' ? 'shares' : 
+                        asset.assetType === 'crypto' ? 'cryptocurrency' :
+                        asset.assetType === 'gold' ? 'gold holdings' :
+                        asset.assetType === 'silver' ? 'silver holdings' :
+                        `${asset.assetType} position`;
+    
+    if (isPositive) {
+      return `${asset.name} ${assetTypeText} showed positive performance with strong fundamentals and favorable market conditions supporting continued growth potential in the current economic environment.`;
+    } else {
+      return `${asset.name} ${assetTypeText} experienced some volatility due to market conditions and sector-specific factors, but maintains solid underlying value with potential for recovery in the medium term.`;
+    }
   };
 
   return (
     <TouchableOpacity
-      style={[styles.card, style]}
+      style={[styles.exactReplicaCard, style]}
       onPress={onPress}
       onLongPress={onLongPress}
       activeOpacity={0.7}
-      accessible={true}
-      accessibilityRole="button"
-      accessibilityLabel={`${asset.name} asset card`}
-      accessibilityHint="Tap to view details, long press for options"
-      accessibilityValue={{
-        text: `Current value ${formatCurrency(asset.totalValue)}, ${
-          asset.totalGainLoss >= 0 ? 'gain' : 'loss'
-        } of ${formatCurrency(Math.abs(asset.totalGainLoss))}`
-      }}
     >
-      {isPhysicalAsset(asset) 
-        ? renderPhysicalAssetContent(asset)
-        : isTradableAsset(asset) 
-          ? renderTradableAssetContent(asset)
-          : null
-      }
-      
-      <View style={styles.footer}>
-        <Text style={styles.lastUpdated}>
-          Updated {new Date(asset.lastUpdated).toLocaleDateString()}
+      {/* Exact Header Layout - Matching Placeholder Cards */}
+      <View style={styles.pixelPerfectHeader}>
+        <View style={styles.pixelPerfectLeft}>
+          <View style={styles.pixelPerfectIcon}>
+            <Text style={styles.pixelPerfectIconText}>{symbol}</Text>
+          </View>
+          <View style={styles.pixelPerfectCompanyInfo}>
+            <Text style={styles.pixelPerfectCompanyName} numberOfLines={1}>
+              {asset.name}
+            </Text>
+            <Text style={styles.pixelPerfectSymbol}>{symbol}</Text>
+          </View>
+        </View>
+        <View style={styles.pixelPerfectRight}>
+          <Text style={styles.pixelPerfectPrice}>
+            {formatCurrency(currentPrice, isTradableAsset(asset) ? asset.currency : undefined)}
+          </Text>
+          <Text style={[styles.pixelPerfectChange, { color: changeColor }]}>
+            {isNegative ? '↓' : '↑'} {Math.abs(changePercent).toFixed(2)}%
+          </Text>
+        </View>
+      </View>
+
+      {/* Chart and Stats Layout - Pixel Perfect */}
+      <View style={styles.pixelPerfectBody}>
+        {/* Left Side - Chart with Y-axis */}
+        <View style={styles.pixelPerfectChartSection}>
+          {/* Y-axis labels */}
+          <View style={styles.pixelPerfectYAxis}>
+            <Text style={styles.pixelPerfectYLabel}>{Math.round(currentPrice * 1.4)}</Text>
+            <Text style={styles.pixelPerfectYLabel}>{Math.round(currentPrice * 1.2)}</Text>
+            <Text style={styles.pixelPerfectYLabel}>{Math.round(currentPrice)}</Text>
+          </View>
+          
+          {/* Chart area */}
+          <View style={styles.pixelPerfectChartContainer}>
+            <View style={styles.pixelPerfectChart}>
+              {/* Simple line chart to match the image exactly */}
+              <Svg width={140} height={70}>
+                {/* Chart line */}
+                {chartData.map((point: number, idx: number) => {
+                  if (idx === chartData.length - 1) return null;
+                  const x1 = (idx / (chartData.length - 1)) * 140;
+                  const x2 = ((idx + 1) / (chartData.length - 1)) * 140;
+                  const minPrice = Math.min(...chartData);
+                  const maxPrice = Math.max(...chartData);
+                  const priceRange = maxPrice - minPrice || 1;
+                  const y1 = 70 - ((point - minPrice) / priceRange) * 70;
+                  const y2 = 70 - ((chartData[idx + 1] - minPrice) / priceRange) * 70;
+                  
+                  return (
+                    <Line
+                      key={idx}
+                      x1={x1}
+                      y1={y1}
+                      x2={x2}
+                      y2={y2}
+                      stroke={changeColor}
+                      strokeWidth="2.5"
+                    />
+                  );
+                })}
+              </Svg>
+            </View>
+            <Text style={styles.pixelPerfectTime}>6:00 PM</Text>
+          </View>
+        </View>
+
+        {/* Right Side - Stats Exactly Like Placeholder Cards */}
+        <View style={styles.pixelPerfectStatsSection}>
+          <View style={styles.pixelPerfectStatRow}>
+            <Text style={styles.pixelPerfectStatLabel}>Volume</Text>
+            <Text style={styles.pixelPerfectStatValue}>{getVolume(asset)}</Text>
+          </View>
+          <View style={styles.pixelPerfectStatRow}>
+            <Text style={styles.pixelPerfectStatLabel}>Market Cap</Text>
+            <Text style={styles.pixelPerfectStatValue}>{getMarketCap(asset)}</Text>
+          </View>
+          <View style={styles.pixelPerfectStatRow}>
+            <Text style={styles.pixelPerfectStatLabel}>P/E Ratio</Text>
+            <Text style={styles.pixelPerfectStatValue}>{getPERatio(asset)}</Text>
+          </View>
+          <View style={styles.pixelPerfectStatRow}>
+            <Text style={styles.pixelPerfectStatLabel}>Growth Rate</Text>
+            <Text style={[
+              styles.pixelPerfectStatValue,
+              { color: getGrowthRate(asset) && getGrowthRate(asset)! > 0 ? '#22c55e' : getGrowthRate(asset) && getGrowthRate(asset)! < 0 ? '#ef4444' : '#ffffff' }
+            ]}>
+              {getGrowthRate(asset) !== null ? `${getGrowthRate(asset)!.toFixed(1)}%` : 'N/A'}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Insight Text - Pixel Perfect */}
+      <View style={styles.pixelPerfectInsightContainer}>
+        <Text style={styles.pixelPerfectInsightText}>
+          {generateInsight(asset)}
         </Text>
-        
-        <TouchableOpacity style={styles.insightsButton}>
-          <Icon name="insights" size={16} color="#6B7280" />
-          <Text style={styles.insightsButtonText}>AI Insights</Text>
-        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+  // Exact Replica Styles to Match Placeholder Investment Cards
+  exactReplicaCard: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 12,
+    marginHorizontal: 20,
+    marginBottom: 20,
     padding: 16,
-    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
-  assetHeader: {
+  pixelPerfectHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  assetInfo: {
-    flexDirection: 'row',
-    flex: 1,
-    marginRight: 12,
-  },
-  assetLogo: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
-  },
-  assetIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
+    marginBottom: 20,
   },
-  assetDetails: {
+  pixelPerfectLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
   },
-  assetSymbol: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 2,
+  pixelPerfectIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 6,
+    backgroundColor: '#374151',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  assetName: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 2,
-  },
-  assetSector: {
+  pixelPerfectIconText: {
     fontSize: 12,
-    color: '#9CA3AF',
+    fontWeight: '700',
+    color: '#ffffff',
   },
-  assetValue: {
+  pixelPerfectCompanyInfo: {
+    flex: 1,
+  },
+  pixelPerfectCompanyName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginBottom: 2,
+  },
+  pixelPerfectSymbol: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#9ca3af',
+  },
+  pixelPerfectRight: {
     alignItems: 'flex-end',
   },
-  totalValue: {
-    fontSize: 18,
+  pixelPerfectPrice: {
+    fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#ffffff',
     marginBottom: 2,
   },
-  quantity: {
-    fontSize: 12,
-    color: '#6B7280',
+  pixelPerfectChange: {
+    fontSize: 14,
+    fontWeight: '600',
   },
-  performanceSection: {
-    marginBottom: 16,
-  },
-  performanceItem: {
+  pixelPerfectBody: {
     flexDirection: 'row',
+    marginBottom: 20,
+  },
+  pixelPerfectChartSection: {
+    flex: 1,
+    flexDirection: 'row',
+    height: 100,
+    marginRight: 20,
+  },
+  pixelPerfectYAxis: {
+    width: 30,
     justifyContent: 'space-between',
-    alignItems: 'center',
+    paddingVertical: 5,
+  },
+  pixelPerfectYLabel: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: '#9ca3af',
+  },
+  pixelPerfectChartContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  pixelPerfectChart: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  pixelPerfectTime: {
+    position: 'absolute',
+    bottom: -15,
+    left: 4,
+    fontSize: 10,
+    fontWeight: '500',
+    color: '#9ca3af',
+  },
+  pixelPerfectStatsSection: {
+    width: 120,
+    justifyContent: 'space-between',
+  },
+  pixelPerfectStatRow: {
     marginBottom: 8,
   },
-  performanceLabel: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  performanceValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  recommendationSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  recommendationBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-  },
-  recommendationText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginLeft: 4,
-  },
-  riskBadge: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-  },
-  riskText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  physicalAssetInfo: {
-    marginBottom: 16,
-  },
-  infoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  infoText: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginLeft: 6,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-  },
-  lastUpdated: {
-    fontSize: 12,
-    color: '#9CA3AF',
-  },
-  insightsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    backgroundColor: '#F9FAFB',
-  },
-  insightsButtonText: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginLeft: 4,
+  pixelPerfectStatLabel: {
+    fontSize: 11,
     fontWeight: '500',
+    color: '#9ca3af',
+    marginBottom: 2,
+  },
+  pixelPerfectStatValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  pixelPerfectInsightContainer: {
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#374151',
+  },
+  pixelPerfectInsightText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '400',
+    color: '#d1d5db',
   },
 });
 

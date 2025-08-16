@@ -274,13 +274,15 @@ export const AssetInsightsDrawer: React.FC<AssetInsightsDrawerProps> = ({
               </View>
             )}
 
-            {tradableAsset.dividendYield && (
+            {tradableAsset.growthRate && (
               <View style={styles.marketMetric}>
                 <Text style={[styles.marketMetricLabel, { color: theme.textMuted }]}>
-                  Dividend Yield
+                  Growth Rate
                 </Text>
-                <Text style={[styles.marketMetricValue, { color: theme.text }]}>
-                  {tradableAsset.dividendYield.toFixed(2)}%
+                <Text style={[styles.marketMetricValue, { 
+                  color: tradableAsset.growthRate > 0 ? '#22c55e' : tradableAsset.growthRate < 0 ? '#ef4444' : theme.text 
+                }]}>
+                  {tradableAsset.growthRate.toFixed(1)}%
                 </Text>
               </View>
             )}

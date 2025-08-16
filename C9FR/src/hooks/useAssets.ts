@@ -185,8 +185,11 @@ export const useAssets = (): UseAssetsReturn => {
     try {
       const token = await getAuthToken();
       
+      const validAssets = assets.filter(asset => asset.quantity > 0 && asset.averagePurchasePrice > 0);
+      const invalidCount = assets.length - validAssets.length;
+
       // Create assets one by one
-      for (const assetData of assets) {
+      for (const assetData of validAssets) {
         const createRequest: CreateAssetRequest = {
           assetType: assetData.assetType,
           name: assetData.name,
@@ -201,7 +204,13 @@ export const useAssets = (): UseAssetsReturn => {
       // Reload assets after bulk import
       await loadAssets(false);
       
-      Alert.alert('Success', `${assets.length} assets imported successfully!`);
+      let successMessage = `${validAssets.length} assets imported successfully!`;
+      if (invalidCount > 0) {
+        successMessage += `
+${invalidCount} assets were skipped due to zero quantity or price.`;
+      }
+      Alert.alert('Import Complete', successMessage);
+
     } catch (error) {
       console.error('Failed to import assets:', error);
       Alert.alert('Import Failed', 'Some assets could not be imported. Please try again.');

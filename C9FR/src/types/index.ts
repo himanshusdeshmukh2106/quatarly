@@ -203,7 +203,9 @@ export interface TradableAsset extends Asset {
   logoUrl?: string;
   sector?: string;
   marketCap?: number;
-  dividendYield?: number; // for stocks
+  volume?: string; // trading volume (e.g., "1.2M", "500K")
+  peRatio?: number; // price-to-earnings ratio
+  growthRate?: number; // revenue growth rate (replaces dividendYield)
   yieldToMaturity?: number; // for bonds
   maturityDate?: string; // for bonds
 }
@@ -215,11 +217,6 @@ export interface PhysicalAsset extends Asset {
   unit: string; // e.g., "grams", "ounces", "kg"
   purchasePrice: number; // per unit
   currentMarketPrice?: number; // per unit (optional, manually updated)
-  
-  // Physical Asset Specific
-  purity?: string; // e.g., "24K", "22K" for gold
-  storage?: string; // storage location or method
-  certificate?: string; // certificate number if applicable
   
   // Manual tracking
   manuallyUpdated: boolean;
@@ -242,9 +239,6 @@ export interface CreateAssetRequest {
   
   // For physical assets
   unit?: string;
-  purity?: string;
-  storage?: string;
-  certificate?: string;
 }
 
 // PDF Import Interfaces
@@ -301,7 +295,7 @@ export interface Investment {
   logoUrl?: string;
   sector?: string;
   marketCap?: number;
-  dividendYield?: number;
+  growthRate?: number; // revenue growth rate (replaces dividendYield)
   createdAt: string;
   updatedAt: string;
 }

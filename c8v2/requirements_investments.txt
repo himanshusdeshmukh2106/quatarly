@@ -3,3 +3,4 @@ yfinance==0.2.18
 requests==2.31.0
 celery==5.3.4  # For background tasks
 redis==5.0.1   # For celery broker
+Bharat-sm-data  # For Indian stock market data (NSE/BSE)

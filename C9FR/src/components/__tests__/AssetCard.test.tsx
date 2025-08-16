@@ -60,7 +60,7 @@ const mockTradableAsset: TradableAsset = {
   logoUrl: 'https://example.com/aapl-logo.png',
   sector: 'Technology',
   marketCap: 2000000000,
-  dividendYield: 2.5,
+  growthRate: 12.5,
 };
 
 const mockPhysicalAsset: PhysicalAsset = {
@@ -206,7 +206,7 @@ describe('AssetCard', () => {
         logoUrl: undefined,
         sector: undefined,
         marketCap: undefined,
-        dividendYield: undefined,
+        growthRate: undefined,
       };
 
       const { getByText } = renderWithTheme(
