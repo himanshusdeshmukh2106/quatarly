@@ -80,12 +80,7 @@ FMP_API_KEY = os.getenv('FMP_API_KEY')
 
 #### Environment Variables (`.env`)
 ```properties
-# Existing
-PERPLEXITY_API_KEY=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
 
-# Added
-FMP_API_KEY=3c7e4c8b0f0d4e2f2d6a6e9e2c8e2f2d
-```
 
 ## Test Results
 
