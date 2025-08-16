@@ -177,9 +177,7 @@ def _determine_asset_type(symbol: str) -> str:
 ### Environment Configuration
 ```bash
 # Required environment variables
-FINNHUB_API_KEY=d2gg259r01qq1lhutm50d2gg259r01qq1lhutm5g ✅
-FMP_API_KEY=XQi7AHfKq6eBg4Gf4jwRv4N5eDyM9Dvk ✅
-PERPLEXITY_API_KEY=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 ✅
+
 ```
 
 ### Service Health Status
