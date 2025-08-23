@@ -1,4 +1,4 @@
-import React, { useState, useContext, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useContext, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import { CreateAssetRequest } from '../types';
 import { ThemeContext } from '../context/ThemeContext';
 import { simpleAssetService, AssetSuggestion } from '../services/simpleAssetService';
 
+
 interface AddAssetModalProps {
   visible: boolean;
   onClose: () => void;
@@ -33,6 +34,7 @@ interface ExchangeOption {
 }
 
 // Optimized exchange options - only load when needed
+
 const EXCHANGE_OPTIONS: Record<string, ExchangeOption[]> = {
   stock: [
     { code: 'NSE', name: 'NSE', country: 'India' },
@@ -71,7 +73,6 @@ export const AddAssetModal: React.FC<AddAssetModalProps> = ({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showExchangeDropdown, setShowExchangeDropdown] = useState(false);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-  const [loadingPrice, setLoadingPrice] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<AssetSuggestion[]>([]);
 
   // Real-time search effect (instant with static data)
@@ -127,7 +128,6 @@ export const AddAssetModal: React.FC<AddAssetModalProps> = ({
     if (suggestion.currentPrice) {
       setPurchasePrice(suggestion.currentPrice.toString());
     } else if (suggestion.symbol) {
-      setLoadingPrice(true);
       try {
         const currentPrice = await simpleAssetService.getCurrentPrice(suggestion.symbol);
         if (currentPrice) {
@@ -135,8 +135,6 @@ export const AddAssetModal: React.FC<AddAssetModalProps> = ({
         }
       } catch (error) {
         console.log('Price not available, user can enter manually');
-      } finally {
-        setLoadingPrice(false);
       }
     }
     
@@ -196,7 +194,6 @@ export const AddAssetModal: React.FC<AddAssetModalProps> = ({
     setShowSuggestions(false);
     setShowExchangeDropdown(false);
     setLoadingSuggestions(false);
-    setLoadingPrice(false);
     setAiSuggestions([]);
     onClose();
   }, [onClose]);
@@ -554,6 +551,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingRight: 40,
     fontSize: 16,
+    fontWeight: '400',
   },
   searchIcon: {
     position: 'absolute',
@@ -566,6 +564,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
+    fontWeight: '400',
   },
 
   dropdown: {
@@ -579,6 +578,7 @@ const styles = StyleSheet.create({
   },
   dropdownText: {
     fontSize: 16,
+    fontWeight: '400',
   },
   dropdownList: {
     position: 'absolute',
@@ -607,6 +607,7 @@ const styles = StyleSheet.create({
   dropdownItemSubtext: {
     fontSize: 14,
     marginTop: 2,
+    fontWeight: '400',
   },
   suggestionsContainer: {
     position: 'absolute',
@@ -659,9 +660,11 @@ const styles = StyleSheet.create({
   },
   suggestionExchange: {
     fontSize: 12,
+    fontWeight: '400',
   },
   suggestionCountry: {
     fontSize: 12,
+    fontWeight: '400',
   },
   suggestionPrice: {
     fontSize: 14,
@@ -676,6 +679,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginLeft: 8,
     fontSize: 14,
+    fontWeight: '400',
   },
 
   priceInputContainer: {

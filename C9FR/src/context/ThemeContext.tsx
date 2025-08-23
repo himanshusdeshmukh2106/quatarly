@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getFontFamily } from '../config/fonts';
 
 // Financial App Color Themes - Following 2025 Financial UI Best Practices
 const lightTheme = {
@@ -10,6 +11,15 @@ const lightTheme = {
   textMuted: '#a0a0a0', // Muted gray for secondary text
   primary: '#003366', // Corporate Blue - Trust and stability
   secondary: '#007a33', // Wealthy Green - Growth and prosperity
+  
+  // Typography - FK Grotesk Font Family
+  fonts: {
+    light: getFontFamily('300'),
+    regular: getFontFamily('400'),
+    medium: getFontFamily('500'),
+    semiBold: getFontFamily('600'),
+    bold: getFontFamily('700'),
+  },
   
   // Surface Colors
   card: '#fff', // Pure white cards for clean separation
@@ -52,6 +62,15 @@ const darkTheme = {
   textMuted: '#adb5bd', // Muted text in dark mode
   primary: '#66a3ff', // Lighter blue for dark mode visibility
   secondary: '#66b3a1', // Teal green for dark mode
+  
+  // Typography - FK Grotesk Font Family (same as light theme)
+  fonts: {
+    light: getFontFamily('300'),
+    regular: getFontFamily('400'),
+    medium: getFontFamily('500'),
+    semiBold: getFontFamily('600'),
+    bold: getFontFamily('700'),
+  },
   
   // Surface Colors
   card: '#2C2C2E', // Dark cards

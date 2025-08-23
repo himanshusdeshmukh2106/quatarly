@@ -240,7 +240,7 @@ class DataEnrichmentService:
                 investment.current_price = Decimal(data['current_price'])
             
             if 'current_yield' in data and data['current_yield']:
-                investment.dividend_yield = Decimal(data['current_yield'])  # Store yield in dividend_yield field
+                investment.growth_rate = Decimal(data['current_yield'])  # Store yield in growth_rate field
             
             investment.save()
             logger.info(f"Successfully enriched bond data for {investment.symbol}")

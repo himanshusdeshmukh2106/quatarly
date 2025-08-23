@@ -34,7 +34,7 @@ class InvestmentAdmin(admin.ModelAdmin):
             'fields': ('ai_analysis', 'risk_level', 'recommendation')
         }),
         ('Metadata', {
-            'fields': ('sector', 'market_cap', 'dividend_yield', 'logo_url')
+            'fields': ('sector', 'market_cap', 'growth_rate', 'logo_url')
         }),
         ('Timestamps', {
             'fields': ('last_updated', 'created_at', 'updated_at')
