@@ -9,7 +9,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import GoalsScreen from './main/GoalsScreen';
 import DebtScreen from './main/DebtScreen';
 import ExpensesScreen from './main/ExpensesScreen';
-import AssetsScreen from './main/AssetsScreen';
+import OptimizedAssetsScreen from './main/OptimizedAssetsScreen';
 import OpportunitiesScreen from './main/OpportunitiesScreen';
 import ProfileModal from '../components/ProfileModal';
 import ErrorBoundary from '../components/ErrorBoundary';
@@ -20,7 +20,7 @@ const renderScene = SceneMap({
   expenses: ExpensesScreen,
   investments: () => (
     <ErrorBoundary>
-      <AssetsScreen />
+      <OptimizedAssetsScreen />
     </ErrorBoundary>
   ),
   opportunities: OpportunitiesScreen,

@@ -390,7 +390,6 @@ export const AssetInsightsDrawer: React.FC<AssetInsightsDrawerProps> = ({
           ]}
           {...panResponder.panHandlers}
           accessible={true}
-          accessibilityRole="dialog"
           accessibilityLabel={`${asset?.name} insights drawer`}
           accessibilityHint="Swipe down to close, or use the close button"
           accessibilityViewIsModal={true}

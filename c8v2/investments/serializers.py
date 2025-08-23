@@ -229,3 +229,116 @@ class AssetTypeStatsSerializer(serializers.Serializer):
     total_value = serializers.DecimalField(max_digits=15, decimal_places=2)
     total_gain_loss = serializers.DecimalField(max_digits=15, decimal_places=2)
     percentage_of_portfolio = serializers.DecimalField(max_digits=5, decimal_places=2)
+
+
+class UnifiedAssetCardSerializer(serializers.ModelSerializer):
+    """Optimized serializer for UnifiedAssetCard component"""
+    
+    # Computed fields for unified card display
+    symbol = serializers.SerializerMethodField()
+    currentPrice = serializers.SerializerMethodField()
+    stats = serializers.SerializerMethodField()
+    aiAnalysis = serializers.CharField(source='ai_analysis')
+    assetType = serializers.CharField(source='asset_type')
+    totalGainLoss = serializers.DecimalField(source='total_gain_loss', max_digits=15, decimal_places=2, read_only=True)
+    totalGainLossPercent = serializers.DecimalField(source='total_gain_loss_percent', max_digits=8, decimal_places=4, read_only=True)
+    lastUpdated = serializers.DateTimeField(source='last_updated', read_only=True)
+    createdAt = serializers.DateTimeField(source='created_at', read_only=True)
+    updatedAt = serializers.DateTimeField(source='updated_at', read_only=True)
+    
+    # Conditional fields based on asset type
+    exchange = serializers.SerializerMethodField()
+    volume = serializers.SerializerMethodField()
+    marketCap = serializers.SerializerMethodField()
+    peRatio = serializers.DecimalField(source='pe_ratio', max_digits=8, decimal_places=2, read_only=True, allow_null=True)
+    growthRate = serializers.DecimalField(source='growth_rate', max_digits=8, decimal_places=2, read_only=True, allow_null=True)
+    
+    # Physical asset fields
+    unit = serializers.SerializerMethodField()
+    purchasePrice = serializers.SerializerMethodField()
+    currentMarketPrice = serializers.SerializerMethodField()
+    manuallyUpdated = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Investment
+        fields = [
+            'id', 'name', 'assetType', 'symbol', 'currentPrice', 'currency',
+            'totalValue', 'totalGainLoss', 'totalGainLossPercent',
+            'aiAnalysis', 'riskLevel', 'recommendation', 'stats',
+            'lastUpdated', 'createdAt', 'updatedAt',
+            # Tradeable asset fields
+            'quantity', 'averagePurchasePrice', 'exchange', 'volume', 
+            'marketCap', 'peRatio', 'growthRate',
+            # Physical asset fields
+            'unit', 'purchasePrice', 'currentMarketPrice', 'manuallyUpdated'
+        ]
+        read_only_fields = [
+            'totalValue', 'totalGainLoss', 'totalGainLossPercent',
+            'lastUpdated', 'createdAt', 'updatedAt', 'stats'
+        ]
+
+    def get_symbol(self, obj):
+        return obj.get_symbol_or_abbreviation()
+    
+    def get_currentPrice(self, obj):
+        return float(obj.get_current_price())
+    
+    def get_stats(self, obj):
+        return obj.get_stats_for_unified_card()
+    
+    def get_exchange(self, obj):
+        return obj.exchange if obj.is_tradeable else None
+    
+    def get_volume(self, obj):
+        return obj.volume if obj.is_tradeable else None
+    
+    def get_marketCap(self, obj):
+        return float(obj.market_cap) if obj.market_cap else None
+    
+    def get_unit(self, obj):
+        return obj.unit if obj.is_physical else None
+    
+    def get_purchasePrice(self, obj):
+        return float(obj.average_purchase_price) if obj.is_physical else None
+    
+    def get_currentMarketPrice(self, obj):
+        return float(obj.current_price) if obj.is_physical and obj.current_price > 0 else None
+    
+    def get_manuallyUpdated(self, obj):
+        return True if obj.is_physical else False
+
+    def to_representation(self, instance):
+        """Optimize representation for unified card"""
+        data = super().to_representation(instance)
+        
+        # Remove null fields to reduce payload size
+        return {k: v for k, v in data.items() if v is not None}
+
+
+class BulkInvestmentSerializer(serializers.Serializer):
+    """Serializer for bulk investment operations"""
+    investments = UnifiedAssetCardSerializer(many=True)
+    
+    def create(self, validated_data):
+        investments_data = validated_data['investments']
+        investments = []
+        
+        for investment_data in investments_data:
+            investment = Investment.objects.create(
+                user=self.context['request'].user,
+                **investment_data
+            )
+            investments.append(investment)
+        
+        return {'investments': investments}
+
+
+class AssetPerformanceSerializer(serializers.Serializer):
+    """Serializer for asset performance analytics"""
+    asset_type = serializers.CharField()
+    total_value = serializers.DecimalField(max_digits=15, decimal_places=2)
+    total_gain_loss = serializers.DecimalField(max_digits=15, decimal_places=2)
+    total_gain_loss_percent = serializers.DecimalField(max_digits=8, decimal_places=4)
+    asset_count = serializers.IntegerField()
+    best_performer = UnifiedAssetCardSerializer(allow_null=True)
+    worst_performer = UnifiedAssetCardSerializer(allow_null=True)

@@ -449,3 +449,170 @@ class PriceAlertViewSet(viewsets.ModelViewSet):
                 )
         
         return Response(analysis)
+    
+    @action(detail=False, methods=['get'])
+    def unified_cards(self, request):
+        """Get investments optimized for UnifiedAssetCard component"""
+        try:
+            investments = self.get_queryset().select_related().prefetch_related('historical_data')
+            
+            # Apply filters
+            asset_type = request.query_params.get('asset_type')
+            if asset_type:
+                investments = investments.filter(asset_type=asset_type)
+            
+            # Apply sorting
+            sort_by = request.query_params.get('sort_by', '-created_at')
+            investments = investments.order_by(sort_by)
+            
+            # Limit results for performance
+            limit = int(request.query_params.get('limit', 100))
+            investments = investments[:limit]
+            
+            # Use optimized serializer
+            from .serializers import UnifiedAssetCardSerializer
+            serializer = UnifiedAssetCardSerializer(investments, many=True)
+            
+            return Response({
+                'success': True,
+                'data': serializer.data,
+                'count': len(serializer.data),
+                'timestamp': timezone.now().isoformat()
+            })
+            
+        except Exception as e:
+            logger.error(f"Error fetching unified cards: {str(e)}")
+            return Response({
+                'success': False,
+                'error': 'Failed to fetch asset data',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['get'])
+    def performance_summary(self, request):
+        """Get portfolio performance summary for unified cards"""
+        try:
+            investments = self.get_queryset()
+            
+            # Calculate summary statistics
+            total_value = sum(float(inv.total_value) for inv in investments)
+            total_gain_loss = sum(float(inv.total_gain_loss) for inv in investments)
+            total_invested = total_value - total_gain_loss
+            total_gain_loss_percent = (total_gain_loss / total_invested * 100) if total_invested > 0 else 0
+            
+            # Get asset type breakdown
+            asset_types = {}
+            for inv in investments:
+                asset_type = inv.asset_type
+                if asset_type not in asset_types:
+                    asset_types[asset_type] = {
+                        'count': 0,
+                        'total_value': 0,
+                        'total_gain_loss': 0,
+                        'assets': []
+                    }
+                asset_types[asset_type]['count'] += 1
+                asset_types[asset_type]['total_value'] += float(inv.total_value)
+                asset_types[asset_type]['total_gain_loss'] += float(inv.total_gain_loss)
+                asset_types[asset_type]['assets'].append(inv.to_unified_card_data())
+            
+            # Calculate percentages for each asset type
+            for asset_type_data in asset_types.values():
+                invested = asset_type_data['total_value'] - asset_type_data['total_gain_loss']
+                asset_type_data['gain_loss_percent'] = (
+                    asset_type_data['total_gain_loss'] / invested * 100
+                ) if invested > 0 else 0
+            
+            return Response({
+                'success': True,
+                'data': {
+                    'total_value': total_value,
+                    'total_gain_loss': total_gain_loss,
+                    'total_gain_loss_percent': total_gain_loss_percent,
+                    'total_invested': total_invested,
+                    'asset_count': len(investments),
+                    'asset_types': asset_types,
+                    'last_updated': timezone.now().isoformat()
+                }
+            })
+            
+        except Exception as e:
+            logger.error(f"Error calculating performance summary: {str(e)}")
+            return Response({
+                'success': False,
+                'error': 'Failed to calculate performance summary',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=True, methods=['patch'])
+    def update_physical_value(self, request, pk=None):
+        """Update physical asset market value"""
+        try:
+            investment = self.get_object()
+            
+            if not investment.is_physical:
+                return Response({
+                    'success': False,
+                    'error': 'This endpoint is only for physical assets'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            new_price = request.data.get('current_price')
+            if not new_price or float(new_price) <= 0:
+                return Response({
+                    'success': False,
+                    'error': 'Valid current_price is required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            investment.current_price = float(new_price)
+            investment.save()
+            
+            from .serializers import UnifiedAssetCardSerializer
+            serializer = UnifiedAssetCardSerializer(investment)
+            
+            return Response({
+                'success': True,
+                'data': serializer.data,
+                'message': 'Physical asset value updated successfully'
+            })
+            
+        except Exception as e:
+            logger.error(f"Error updating physical asset value: {str(e)}")
+            return Response({
+                'success': False,
+                'error': 'Failed to update asset value',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['post'])
+    def bulk_create_unified(self, request):
+        """Bulk create investments optimized for unified cards"""
+        try:
+            from .serializers import BulkInvestmentSerializer
+            
+            serializer = BulkInvestmentSerializer(data=request.data, context={'request': request})
+            if serializer.is_valid():
+                result = serializer.save()
+                
+                # Return unified card data
+                from .serializers import UnifiedAssetCardSerializer
+                unified_serializer = UnifiedAssetCardSerializer(result['investments'], many=True)
+                
+                return Response({
+                    'success': True,
+                    'data': unified_serializer.data,
+                    'count': len(result['investments']),
+                    'message': f'Successfully created {len(result["investments"])} investments'
+                }, status=status.HTTP_201_CREATED)
+            
+            return Response({
+                'success': False,
+                'errors': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Exception as e:
+            logger.error(f"Error bulk creating investments: {str(e)}")
+            return Response({
+                'success': False,
+                'error': 'Failed to create investments',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

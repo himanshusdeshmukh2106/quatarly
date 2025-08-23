@@ -7,7 +7,7 @@ module.exports = {
     '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest',
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|@react-navigation|react-native-chart-kit|d3-shape|@ernestbies|react-native-vector-icons)/)',
+    'node_modules/(?!(react-native|@react-native|@react-navigation|react-native-chart-kit|d3-shape|@ernestbies|react-native-vector-icons|react-native-tab-view|react-native-svg)/)',
   ],
   testMatch: [
     '**/__tests__/**/*.(ts|tsx|js)',
@@ -24,5 +24,6 @@ module.exports = {
     '^@ernestbies/react-native-android-sms-listener$': '<rootDir>/__mocks__/sms-listener.js',
     '^react-native-vector-icons/(.*)$': '<rootDir>/__mocks__/react-native-vector-icons.js',
     '^react-native-document-picker$': '<rootDir>/__mocks__/react-native-document-picker.js',
+    '^react-native-tab-view$': '<rootDir>/__mocks__/react-native-tab-view.js',
   },
 };

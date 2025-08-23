@@ -142,6 +142,130 @@ class Investment(models.Model):
             return self.unit or 'grams'
         else:
             return self.unit or 'units'
+    
+    def get_current_price(self):
+        """Get current price for unified card display"""
+        if self.is_tradeable:
+            return self.current_price
+        elif self.is_physical:
+            # For physical assets, use current_price if available, otherwise average_purchase_price
+            return self.current_price if self.current_price > 0 else self.average_purchase_price
+        return self.current_price or self.average_purchase_price
+    
+    def get_symbol_or_abbreviation(self):
+        """Get symbol or generate abbreviation for unified card display"""
+        if self.symbol:
+            return self.symbol
+        # Generate abbreviation from name
+        words = self.name.split()
+        if len(words) >= 2:
+            return ''.join(word[0].upper() for word in words[:2])
+        return self.name[:2].upper()
+    
+    def get_formatted_volume(self):
+        """Get formatted volume for display"""
+        if self.volume:
+            return self.volume
+        # Generate mock volume based on total value
+        base_volume = int(self.total_value / 1000)
+        if base_volume > 1000:
+            return f"{base_volume / 1000:.1f}M"
+        return f"{base_volume / 1000:.1f}K"
+    
+    def get_formatted_market_cap(self):
+        """Get formatted market cap for display"""
+        if self.market_cap:
+            if self.market_cap > 1000000000:
+                return f"{self.market_cap / 1000000000:.1f}B"
+            return f"{self.market_cap / 1000000:.1f}M"
+        
+        # Generate mock market cap
+        multiplier = 50 if self.is_physical else 100
+        base_cap = float(self.total_value) * multiplier
+        if base_cap > 1000000000:
+            return f"{base_cap / 1000000000:.1f}B"
+        return f"{base_cap / 1000000:.1f}M"
+    
+    def get_stats_for_unified_card(self):
+        """Get statistics appropriate for the asset type for unified card display"""
+        if self.is_tradeable:
+            return [
+                {'label': 'Volume', 'value': self.get_formatted_volume()},
+                {'label': 'Market Cap', 'value': self.get_formatted_market_cap()},
+                {'label': 'P/E Ratio', 'value': f"{self.pe_ratio:.2f}" if self.pe_ratio else "N/A"},
+                {
+                    'label': 'Growth Rate', 
+                    'value': f"{self.growth_rate:.1f}%" if self.growth_rate is not None else "N/A",
+                    'color': '#22c55e' if self.growth_rate and self.growth_rate > 0 else '#ef4444' if self.growth_rate and self.growth_rate < 0 else None
+                }
+            ]
+        elif self.is_physical:
+            return [
+                {'label': 'Volume', 'value': self.get_formatted_volume()},
+                {'label': 'Market Cap', 'value': self.get_formatted_market_cap()},
+                {'label': 'Purchase Price', 'value': f"₹{self.average_purchase_price:.2f}"},
+                {'label': 'Quantity', 'value': f"{self.quantity} {self.get_display_unit()}"}
+            ]
+        else:
+            return [
+                {'label': 'Volume', 'value': self.get_formatted_volume()},
+                {'label': 'Market Cap', 'value': self.get_formatted_market_cap()},
+                {'label': 'Total Value', 'value': f"₹{self.total_value:.2f}"},
+                {'label': 'Asset Type', 'value': self.asset_type.upper()}
+            ]
+    
+    def to_unified_card_data(self):
+        """Convert investment to unified card data format"""
+        return {
+            'id': str(self.id),
+            'name': self.name,
+            'assetType': self.asset_type,
+            'symbol': self.get_symbol_or_abbreviation(),
+            'currentPrice': float(self.get_current_price()),
+            'currency': self.currency if self.is_tradeable else None,
+            'totalValue': float(self.total_value),
+            'totalGainLoss': float(self.total_gain_loss),
+            'totalGainLossPercent': float(self.total_gain_loss_percent),
+            'aiAnalysis': self.ai_analysis or self._generate_default_analysis(),
+            'riskLevel': self.risk_level,
+            'recommendation': self.recommendation,
+            'stats': self.get_stats_for_unified_card(),
+            'lastUpdated': self.last_updated.isoformat() if self.last_updated else self.updated_at.isoformat(),
+            'createdAt': self.created_at.isoformat(),
+            'updatedAt': self.updated_at.isoformat(),
+            # Additional fields for tradeable assets
+            'quantity': float(self.quantity) if self.is_tradeable else None,
+            'averagePurchasePrice': float(self.average_purchase_price) if self.is_tradeable else None,
+            'exchange': self.exchange if self.is_tradeable else None,
+            'volume': self.volume if self.is_tradeable else None,
+            'marketCap': float(self.market_cap) if self.market_cap else None,
+            'peRatio': float(self.pe_ratio) if self.pe_ratio else None,
+            'growthRate': float(self.growth_rate) if self.growth_rate is not None else None,
+            # Additional fields for physical assets
+            'unit': self.unit if self.is_physical else None,
+            'purchasePrice': float(self.average_purchase_price) if self.is_physical else None,
+            'currentMarketPrice': float(self.current_price) if self.is_physical and self.current_price > 0 else None,
+            'manuallyUpdated': True if self.is_physical else False,
+        }
+    
+    def _generate_default_analysis(self):
+        """Generate default AI analysis if none exists"""
+        asset_type_text = {
+            'stock': 'shares',
+            'crypto': 'cryptocurrency',
+            'gold': 'gold holdings',
+            'silver': 'silver holdings',
+            'etf': 'ETF position',
+            'bond': 'bond position',
+            'commodity': 'commodity holdings',
+        }.get(self.asset_type, f'{self.asset_type} position')
+        
+        is_positive = self.total_gain_loss >= 0
+        
+        if is_positive:
+            return f"{self.name} {asset_type_text} showed positive performance with strong fundamentals and favorable market conditions supporting continued growth potential in the current economic environment."
+        else:
+            return f"{self.name} {asset_type_text} experienced some volatility due to market conditions and sector-specific factors, but maintains solid underlying value with potential for recovery in the medium term."
 
     def __str__(self):
         if self.symbol:

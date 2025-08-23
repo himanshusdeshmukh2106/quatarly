@@ -1,0 +1,2715 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`UnifiedAssetCard Visual Consistency Tests Snapshot Tests for Visual Regression matches snapshot for error state - visual consistency baseline: error-state-visual-consistency 1`] = `
+<View
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": undefined,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  collapsable={false}
+  focusable={true}
+  onClick={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  style={
+    {
+      "backgroundColor": "#1f1f1f",
+      "borderRadius": 16,
+      "elevation": 12,
+      "marginBottom": 20,
+      "marginHorizontal": 20,
+      "opacity": 1,
+      "padding": 20,
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 8,
+        "width": 0,
+      },
+      "shadowOpacity": 0.4,
+      "shadowRadius": 12,
+    }
+  }
+  testID="unified-asset-card"
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+        "marginBottom": 20,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flex": 1,
+          "flexDirection": "row",
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "backgroundColor": "#374151",
+            "borderRadius": 8,
+            "height": 40,
+            "justifyContent": "center",
+            "marginRight": 16,
+            "width": 40,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": "#ffffff",
+              "fontSize": 14,
+              "fontWeight": "800",
+            }
+          }
+        >
+          UA
+        </Text>
+      </View>
+      <View
+        style={
+          {
+            "flex": 1,
+          }
+        }
+      >
+        <Text
+          numberOfLines={1}
+          style={
+            {
+              "color": "#ffffff",
+              "fontSize": 17,
+              "fontWeight": "600",
+              "lineHeight": 20,
+              "marginBottom": 4,
+            }
+          }
+        >
+          Unknown Asset
+        </Text>
+        <Text
+          style={
+            {
+              "color": "#9ca3af",
+              "fontSize": 13,
+              "fontWeight": "500",
+              "letterSpacing": 0.2,
+            }
+          }
+        >
+          UA
+        </Text>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "flex-end",
+        }
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#ffffff",
+            "fontSize": 20,
+            "fontWeight": "700",
+            "letterSpacing": -0.2,
+            "marginBottom": 2,
+          }
+        }
+      >
+        ₹0.00
+      </Text>
+      <Text
+        style={
+          [
+            {
+              "fontSize": 14,
+              "fontWeight": "600",
+              "letterSpacing": 0.1,
+            },
+            {
+              "color": "#6B7280",
+            },
+          ]
+        }
+      >
+        ↑ 0.00%
+      </Text>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "flexDirection": "row",
+        "marginBottom": 24,
+        "marginTop": 4,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "flex": 1,
+          "flexDirection": "row",
+          "marginRight": 24,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "height": 80,
+            "justifyContent": "space-between",
+            "paddingBottom": 4,
+            "paddingRight": 10,
+            "paddingTop": 4,
+            "width": 44,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": "#6b7280",
+              "fontSize": 11,
+              "fontWeight": "500",
+              "textAlign": "right",
+            }
+          }
+        >
+          100
+        </Text>
+        <Text
+          style={
+            {
+              "color": "#6b7280",
+              "fontSize": 11,
+              "fontWeight": "500",
+              "textAlign": "right",
+            }
+          }
+        >
+          100
+        </Text>
+        <Text
+          style={
+            {
+              "color": "#6b7280",
+              "fontSize": 11,
+              "fontWeight": "500",
+              "textAlign": "right",
+            }
+          }
+        >
+          100
+        </Text>
+      </View>
+      <View
+        style={
+          {
+            "flex": 1,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "height": 80,
+              "position": "relative",
+            }
+          }
+        >
+          <RNSVGSvgView
+            height={80}
+            width={140}
+          >
+            <RNSVGLine
+              stroke="#6B7280"
+              strokeWidth="2"
+              x1={0}
+              x2={12.727272727272728}
+              y1={80}
+              y2={80}
+            />
+            <RNSVGLine
+              stroke="#6B7280"
+              strokeWidth="2"
+              x1={12.727272727272728}
+              x2={25.454545454545457}
+              y1={80}
+              y2={80}
+            />
+            <RNSVGLine
+              stroke="#6B7280"
+              strokeWidth="2"
+              x1={25.454545454545457}
+              x2={38.18181818181818}
+              y1={80}
+              y2={80}
+            />
+            <RNSVGLine
+              stroke="#6B7280"
+              strokeWidth="2"
+              x1={38.18181818181818}
+              x2={50.909090909090914}
+              y1={80}
+              y2={80}
+            />
+            <RNSVGLine
+              stroke="#6B7280"
+              strokeWidth="2"
+              x1={50.909090909090914}
+              x2={63.63636363636363}
+              y1={80}
+              y2={80}
+            />
+            <RNSVGLine
+              stroke="#6B7280"
+              strokeWidth="2"
+              x1={63.63636363636363}
+              x2={76.36363636363636}
+              y1={80}
+              y2={80}
+            />
+            <RNSVGLine
+              stroke="#6B7280"
+              strokeWidth="2"
+              x1={76.36363636363636}
+              x2={89.0909090909091}
+              y1={80}
+              y2={80}
+            />
+            <RNSVGLine
+              stroke="#6B7280"
+              strokeWidth="2"
+              x1={89.0909090909091}
+              x2={101.81818181818183}
+              y1={80}
+              y2={80}
+            />
+            <RNSVGLine
+              stroke="#6B7280"
+              strokeWidth="2"
+              x1={101.81818181818183}
+              x2={114.54545454545455}
+              y1={80}
+              y2={80}
+            />
+            <RNSVGLine
+              stroke="#6B7280"
+              strokeWidth="2"
+              x1={114.54545454545455}
+              x2={127.27272727272727}
+              y1={80}
+              y2={80}
+            />
+            <RNSVGLine
+              stroke="#6B7280"
+              strokeWidth="2"
+              x1={127.27272727272727}
+              x2={140}
+              y1={80}
+              y2={80}
+            />
+          </RNSVGSvgView>
+        </View>
+        <Text
+          style={
+            {
+              "color": "#6b7280",
+              "fontSize": 11,
+              "fontWeight": "500",
+              "marginTop": 10,
+              "textAlign": "left",
+            }
+          }
+        >
+          12:00 PM
+        </Text>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "justifyContent": "space-between",
+          "paddingTop": 4,
+          "width": 130,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "justifyContent": "space-between",
+            "marginBottom": 12,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": "#6b7280",
+              "fontSize": 12,
+              "fontWeight": "500",
+            }
+          }
+        >
+          Volume
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#ffffff",
+                "fontSize": 13,
+                "fontWeight": "600",
+                "textAlign": "right",
+              },
+              null,
+            ]
+          }
+        >
+          N/A
+        </Text>
+      </View>
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "justifyContent": "space-between",
+            "marginBottom": 12,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": "#6b7280",
+              "fontSize": 12,
+              "fontWeight": "500",
+            }
+          }
+        >
+          Market Cap
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#ffffff",
+                "fontSize": 13,
+                "fontWeight": "600",
+                "textAlign": "right",
+              },
+              null,
+            ]
+          }
+        >
+          N/A
+        </Text>
+      </View>
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "justifyContent": "space-between",
+            "marginBottom": 12,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": "#6b7280",
+              "fontSize": 12,
+              "fontWeight": "500",
+            }
+          }
+        >
+          P/E Ratio
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#ffffff",
+                "fontSize": 13,
+                "fontWeight": "600",
+                "textAlign": "right",
+              },
+              null,
+            ]
+          }
+        >
+          N/A
+        </Text>
+      </View>
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "justifyContent": "space-between",
+            "marginBottom": 12,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": "#6b7280",
+              "fontSize": 12,
+              "fontWeight": "500",
+            }
+          }
+        >
+          Growth Rate
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#ffffff",
+                "fontSize": 13,
+                "fontWeight": "600",
+                "textAlign": "right",
+              },
+              null,
+            ]
+          }
+        >
+          N/A
+        </Text>
+      </View>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "borderTopColor": "#333333",
+        "borderTopWidth": 1,
+        "marginTop": 4,
+        "paddingTop": 20,
+      }
+    }
+  >
+    <Text
+      style={
+        {
+          "color": "#d1d5db",
+          "fontSize": 14,
+          "fontWeight": "400",
+          "letterSpacing": 0.1,
+          "lineHeight": 20,
+        }
+      }
+    >
+      Asset data is currently unavailable. Please check your connection and try again.
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`UnifiedAssetCard Visual Consistency Tests Snapshot Tests for Visual Regression matches snapshot for mixed asset display - visual rhythm consistency: mixed-assets-visual-rhythm 1`] = `
+[
+  <View
+    accessibilityState={
+      {
+        "busy": undefined,
+        "checked": undefined,
+        "disabled": undefined,
+        "expanded": undefined,
+        "selected": undefined,
+      }
+    }
+    accessibilityValue={
+      {
+        "max": undefined,
+        "min": undefined,
+        "now": undefined,
+        "text": undefined,
+      }
+    }
+    accessible={true}
+    collapsable={false}
+    focusable={true}
+    onClick={[Function]}
+    onResponderGrant={[Function]}
+    onResponderMove={[Function]}
+    onResponderRelease={[Function]}
+    onResponderTerminate={[Function]}
+    onResponderTerminationRequest={[Function]}
+    onStartShouldSetResponder={[Function]}
+    style={
+      {
+        "backgroundColor": "#1f1f1f",
+        "borderRadius": 16,
+        "elevation": 12,
+        "marginBottom": 20,
+        "marginHorizontal": 20,
+        "opacity": 1,
+        "padding": 20,
+        "shadowColor": "#000",
+        "shadowOffset": {
+          "height": 8,
+          "width": 0,
+        },
+        "shadowOpacity": 0.4,
+        "shadowRadius": 12,
+      }
+    }
+    testID="unified-asset-card"
+  >
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "justifyContent": "space-between",
+          "marginBottom": 20,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+            "flexDirection": "row",
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "backgroundColor": "#374151",
+              "borderRadius": 8,
+              "height": 40,
+              "justifyContent": "center",
+              "marginRight": 16,
+              "width": 40,
+            }
+          }
+        >
+          <Text
+            style={
+              {
+                "color": "#ffffff",
+                "fontSize": 14,
+                "fontWeight": "800",
+              }
+            }
+          >
+            AAPL
+          </Text>
+        </View>
+        <View
+          style={
+            {
+              "flex": 1,
+            }
+          }
+        >
+          <Text
+            numberOfLines={1}
+            style={
+              {
+                "color": "#ffffff",
+                "fontSize": 17,
+                "fontWeight": "600",
+                "lineHeight": 20,
+                "marginBottom": 4,
+              }
+            }
+          >
+            Apple Inc.
+          </Text>
+          <Text
+            style={
+              {
+                "color": "#9ca3af",
+                "fontSize": 13,
+                "fontWeight": "500",
+                "letterSpacing": 0.2,
+              }
+            }
+          >
+            AAPL
+          </Text>
+        </View>
+      </View>
+      <View
+        style={
+          {
+            "alignItems": "flex-end",
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": "#ffffff",
+              "fontSize": 20,
+              "fontWeight": "700",
+              "letterSpacing": -0.2,
+              "marginBottom": 2,
+            }
+          }
+        >
+          $175.00
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "fontSize": 14,
+                "fontWeight": "600",
+                "letterSpacing": 0.1,
+              },
+              {
+                "color": "#22c55e",
+              },
+            ]
+          }
+        >
+          ↑ 16.67%
+        </Text>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "flexDirection": "row",
+          "marginBottom": 24,
+          "marginTop": 4,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "flex": 1,
+            "flexDirection": "row",
+            "marginRight": 24,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "height": 80,
+              "justifyContent": "space-between",
+              "paddingBottom": 4,
+              "paddingRight": 10,
+              "paddingTop": 4,
+              "width": 44,
+            }
+          }
+        >
+          <Text
+            style={
+              {
+                "color": "#6b7280",
+                "fontSize": 11,
+                "fontWeight": "500",
+                "textAlign": "right",
+              }
+            }
+          >
+            175
+          </Text>
+          <Text
+            style={
+              {
+                "color": "#6b7280",
+                "fontSize": 11,
+                "fontWeight": "500",
+                "textAlign": "right",
+              }
+            }
+          >
+            166
+          </Text>
+          <Text
+            style={
+              {
+                "color": "#6b7280",
+                "fontSize": 11,
+                "fontWeight": "500",
+                "textAlign": "right",
+              }
+            }
+          >
+            157
+          </Text>
+        </View>
+        <View
+          style={
+            {
+              "flex": 1,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "height": 80,
+                "position": "relative",
+              }
+            }
+          >
+            <RNSVGSvgView
+              height={80}
+              width={140}
+            >
+              <RNSVGLine
+                stroke="#22c55e"
+                strokeWidth="2"
+                x1={0}
+                x2={12.727272727272728}
+                y1={80}
+                y2={74.81060188741294}
+              />
+              <RNSVGLine
+                stroke="#22c55e"
+                strokeWidth="2"
+                x1={12.727272727272728}
+                x2={25.454545454545457}
+                y1={74.81060188741294}
+                y2={69.99814151153036}
+              />
+              <RNSVGLine
+                stroke="#22c55e"
+                strokeWidth="2"
+                x1={25.454545454545457}
+                x2={38.18181818181818}
+                y1={69.99814151153036}
+                y2={64.49210560270559}
+              />
+              <RNSVGLine
+                stroke="#22c55e"
+                strokeWidth="2"
+                x1={38.18181818181818}
+                x2={50.909090909090914}
+                y1={64.49210560270559}
+                y2={60.447152470078436}
+              />
+              <RNSVGLine
+                stroke="#22c55e"
+                strokeWidth="2"
+                x1={50.909090909090914}
+                x2={63.63636363636363}
+                y1={60.447152470078436}
+                y2={54.979756383875724}
+              />
+              <RNSVGLine
+                stroke="#22c55e"
+                strokeWidth="2"
+                x1={63.63636363636363}
+                x2={76.36363636363636}
+                y1={54.979756383875724}
+                y2={51.11111389979787}
+              />
+              <RNSVGLine
+                stroke="#22c55e"
+                strokeWidth="2"
+                x1={76.36363636363636}
+                x2={89.0909090909091}
+                y1={51.11111389979787}
+                y2={45.66466452037436}
+              />
+              <RNSVGLine
+                stroke="#22c55e"
+                strokeWidth="2"
+                x1={89.0909090909091}
+                x2={101.81818181818183}
+                y1={45.66466452037436}
+                y2={41.81098438831232}
+              />
+              <RNSVGLine
+                stroke="#22c55e"
+                strokeWidth="2"
+                x1={101.81818181818183}
+                x2={114.54545454545455}
+                y1={41.81098438831232}
+                y2={37.66397037435034}
+              />
+              <RNSVGLine
+                stroke="#22c55e"
+                strokeWidth="2"
+                x1={114.54545454545455}
+                x2={127.27272727272727}
+                y1={37.66397037435034}
+                y2={34.59511904227851}
+              />
+              <RNSVGLine
+                stroke="#22c55e"
+                strokeWidth="2"
+                x1={127.27272727272727}
+                x2={140}
+                y1={34.59511904227851}
+                y2={0}
+              />
+            </RNSVGSvgView>
+          </View>
+          <Text
+            style={
+              {
+                "color": "#6b7280",
+                "fontSize": 11,
+                "fontWeight": "500",
+                "marginTop": 10,
+                "textAlign": "left",
+              }
+            }
+          >
+            3:52 PM
+          </Text>
+        </View>
+      </View>
+      <View
+        style={
+          {
+            "justifyContent": "space-between",
+            "paddingTop": 4,
+            "width": 130,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 12,
+            }
+          }
+        >
+          <Text
+            style={
+              {
+                "color": "#6b7280",
+                "fontSize": 12,
+                "fontWeight": "500",
+              }
+            }
+          >
+            Volume
+          </Text>
+          <Text
+            style={
+              [
+                {
+                  "color": "#ffffff",
+                  "fontSize": 13,
+                  "fontWeight": "600",
+                  "textAlign": "right",
+                },
+                null,
+              ]
+            }
+          >
+            45.2M
+          </Text>
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 12,
+            }
+          }
+        >
+          <Text
+            style={
+              {
+                "color": "#6b7280",
+                "fontSize": 12,
+                "fontWeight": "500",
+              }
+            }
+          >
+            Market Cap
+          </Text>
+          <Text
+            style={
+              [
+                {
+                  "color": "#ffffff",
+                  "fontSize": 13,
+                  "fontWeight": "600",
+                  "textAlign": "right",
+                },
+                null,
+              ]
+            }
+          >
+            2.9T
+          </Text>
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 12,
+            }
+          }
+        >
+          <Text
+            style={
+              {
+                "color": "#6b7280",
+                "fontSize": 12,
+                "fontWeight": "500",
+              }
+            }
+          >
+            P/E Ratio
+          </Text>
+          <Text
+            style={
+              [
+                {
+                  "color": "#ffffff",
+                  "fontSize": 13,
+                  "fontWeight": "600",
+                  "textAlign": "right",
+                },
+                null,
+              ]
+            }
+          >
+            28.45
+          </Text>
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 12,
+            }
+          }
+        >
+          <Text
+            style={
+              {
+                "color": "#6b7280",
+                "fontSize": 12,
+                "fontWeight": "500",
+              }
+            }
+          >
+            Dividend Yield
+          </Text>
+          <Text
+            style={
+              [
+                {
+                  "color": "#ffffff",
+                  "fontSize": 13,
+                  "fontWeight": "600",
+                  "textAlign": "right",
+                },
+                null,
+              ]
+            }
+          >
+            2.88%
+          </Text>
+        </View>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "borderTopColor": "#333333",
+          "borderTopWidth": 1,
+          "marginTop": 4,
+          "paddingTop": 20,
+        }
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#d1d5db",
+            "fontSize": 14,
+            "fontWeight": "400",
+            "letterSpacing": 0.1,
+            "lineHeight": 20,
+          }
+        }
+      >
+        Apple stock showing strong performance with solid fundamentals and positive market sentiment.
+      </Text>
+    </View>
+  </View>,
+  <View
+    accessibilityState={
+      {
+        "busy": undefined,
+        "checked": undefined,
+        "disabled": undefined,
+        "expanded": undefined,
+        "selected": undefined,
+      }
+    }
+    accessibilityValue={
+      {
+        "max": undefined,
+        "min": undefined,
+        "now": undefined,
+        "text": undefined,
+      }
+    }
+    accessible={true}
+    collapsable={false}
+    focusable={true}
+    onClick={[Function]}
+    onResponderGrant={[Function]}
+    onResponderMove={[Function]}
+    onResponderRelease={[Function]}
+    onResponderTerminate={[Function]}
+    onResponderTerminationRequest={[Function]}
+    onStartShouldSetResponder={[Function]}
+    style={
+      {
+        "backgroundColor": "#1f1f1f",
+        "borderRadius": 16,
+        "elevation": 12,
+        "marginBottom": 20,
+        "marginHorizontal": 20,
+        "opacity": 1,
+        "padding": 20,
+        "shadowColor": "#000",
+        "shadowOffset": {
+          "height": 8,
+          "width": 0,
+        },
+        "shadowOpacity": 0.4,
+        "shadowRadius": 12,
+      }
+    }
+    testID="unified-asset-card"
+  >
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "justifyContent": "space-between",
+          "marginBottom": 20,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+            "flexDirection": "row",
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "backgroundColor": "#374151",
+              "borderRadius": 8,
+              "height": 40,
+              "justifyContent": "center",
+              "marginRight": 16,
+              "width": 40,
+            }
+          }
+        >
+          <Text
+            style={
+              {
+                "color": "#ffffff",
+                "fontSize": 14,
+                "fontWeight": "800",
+              }
+            }
+          >
+            GI
+          </Text>
+        </View>
+        <View
+          style={
+            {
+              "flex": 1,
+            }
+          }
+        >
+          <Text
+            numberOfLines={1}
+            style={
+              {
+                "color": "#ffffff",
+                "fontSize": 17,
+                "fontWeight": "600",
+                "lineHeight": 20,
+                "marginBottom": 4,
+              }
+            }
+          >
+            Gold Investment
+          </Text>
+          <Text
+            style={
+              {
+                "color": "#9ca3af",
+                "fontSize": 13,
+                "fontWeight": "500",
+                "letterSpacing": 0.2,
+              }
+            }
+          >
+            GI
+          </Text>
+        </View>
+      </View>
+      <View
+        style={
+          {
+            "alignItems": "flex-end",
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": "#ffffff",
+              "fontSize": 20,
+              "fontWeight": "700",
+              "letterSpacing": -0.2,
+              "marginBottom": 2,
+            }
+          }
+        >
+          ₹5500.00
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "fontSize": 14,
+                "fontWeight": "600",
+                "letterSpacing": 0.1,
+              },
+              {
+                "color": "#22c55e",
+              },
+            ]
+          }
+        >
+          ↑ 10.00%
+        </Text>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "flexDirection": "row",
+          "marginBottom": 24,
+          "marginTop": 4,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "flex": 1,
+            "flexDirection": "row",
+            "marginRight": 24,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "height": 80,
+              "justifyContent": "space-between",
+              "paddingBottom": 4,
+              "paddingRight": 10,
+              "paddingTop": 4,
+              "width": 44,
+            }
+          }
+        >
+          <Text
+            style={
+              {
+                "color": "#6b7280",
+                "fontSize": 11,
+                "fontWeight": "500",
+                "textAlign": "right",
+              }
+            }
+          >
+            5500
+          </Text>
+          <Text
+            style={
+              {
+                "color": "#6b7280",
+                "fontSize": 11,
+                "fontWeight": "500",
+                "textAlign": "right",
+              }
+            }
+          >
+            5211
+          </Text>
+          <Text
+            style={
+              {
+                "color": "#6b7280",
+                "fontSize": 11,
+                "fontWeight": "500",
+                "textAlign": "right",
+              }
+            }
+          >
+            4923
+          </Text>
+        </View>
+        <View
+          style={
+            {
+              "flex": 1,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "height": 80,
+                "position": "relative",
+              }
+            }
+          >
+            <RNSVGSvgView
+              height={80}
+              width={140}
+            >
+              <RNSVGLine
+                stroke="#22c55e"
+                strokeWidth="2"
+                x1={0}
+                x2={12.727272727272728}
+                y1={80}
+                y2={74.77322494448302}
+              />
+              <RNSVGLine
+                stroke="#22c55e"
+                strokeWidth="2"
+                x1={12.727272727272728}
+                x2={25.454545454545457}
+                y1={74.77322494448302}
+                y2={71.52574730808033}
+              />
+              <RNSVGLine
+                stroke="#22c55e"
+                strokeWidth="2"
+                x1={25.454545454545457}
+                x2={38.18181818181818}
+                y1={71.52574730808033}
+                y2={67.04397724719604}
+              />
+              <RNSVGLine
+                stroke="#22c55e"
+                strokeWidth="2"
+                x1={38.18181818181818}
+                x2={50.909090909090914}
+                y1={67.04397724719604}
+                y2={61.907155761848514}
+              />
+              <RNSVGLine
+                stroke="#22c55e"
+                strokeWidth="2"
+                x1={50.909090909090914}
+                x2={63.63636363636363}
+                y1={61.907155761848514}
+                y2={56.8738471170812}
+              />
+              <RNSVGLine
+                stroke="#22c55e"
+                strokeWidth="2"
+                x1={63.63636363636363}
+                x2={76.36363636363636}
+                y1={56.8738471170812}
+                y2={51.65064382267127}
+              />
+              <RNSVGLine
+                stroke="#22c55e"
+                strokeWidth="2"
+                x1={76.36363636363636}
+                x2={89.0909090909091}
+                y1={51.65064382267127}
+                y2={48.37683393065923}
+              />
+              <RNSVGLine
+                stroke="#22c55e"
+                strokeWidth="2"
+                x1={89.0909090909091}
+                x2={101.81818181818183}
+                y1={48.37683393065923}
+                y2={43.46777041844892}
+              />
+              <RNSVGLine
+                stroke="#22c55e"
+                strokeWidth="2"
+                x1={101.81818181818183}
+                x2={114.54545454545455}
+                y1={43.46777041844892}
+                y2={37.905237590323615}
+              />
+              <RNSVGLine
+                stroke="#22c55e"
+                strokeWidth="2"
+                x1={114.54545454545455}
+                x2={127.27272727272727}
+                y1={37.905237590323615}
+                y2={32.348225807433934}
+              />
+              <RNSVGLine
+                stroke="#22c55e"
+                strokeWidth="2"
+                x1={127.27272727272727}
+                x2={140}
+                y1={32.348225807433934}
+                y2={0}
+              />
+            </RNSVGSvgView>
+          </View>
+          <Text
+            style={
+              {
+                "color": "#6b7280",
+                "fontSize": 11,
+                "fontWeight": "500",
+                "marginTop": 10,
+                "textAlign": "left",
+              }
+            }
+          >
+            3:52 PM
+          </Text>
+        </View>
+      </View>
+      <View
+        style={
+          {
+            "justifyContent": "space-between",
+            "paddingTop": 4,
+            "width": 130,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 12,
+            }
+          }
+        >
+          <Text
+            style={
+              {
+                "color": "#6b7280",
+                "fontSize": 12,
+                "fontWeight": "500",
+              }
+            }
+          >
+            Volume
+          </Text>
+          <Text
+            style={
+              [
+                {
+                  "color": "#ffffff",
+                  "fontSize": 13,
+                  "fontWeight": "600",
+                  "textAlign": "right",
+                },
+                null,
+              ]
+            }
+          >
+            440.74K
+          </Text>
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 12,
+            }
+          }
+        >
+          <Text
+            style={
+              {
+                "color": "#6b7280",
+                "fontSize": 12,
+                "fontWeight": "500",
+              }
+            }
+          >
+            Market Cap
+          </Text>
+          <Text
+            style={
+              [
+                {
+                  "color": "#ffffff",
+                  "fontSize": 13,
+                  "fontWeight": "600",
+                  "textAlign": "right",
+                },
+                null,
+              ]
+            }
+          >
+            6.3M
+          </Text>
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 12,
+            }
+          }
+        >
+          <Text
+            style={
+              {
+                "color": "#6b7280",
+                "fontSize": 12,
+                "fontWeight": "500",
+              }
+            }
+          >
+            Purchase Price
+          </Text>
+          <Text
+            style={
+              [
+                {
+                  "color": "#ffffff",
+                  "fontSize": 13,
+                  "fontWeight": "600",
+                  "textAlign": "right",
+                },
+                null,
+              ]
+            }
+          >
+            ₹5,000.00
+          </Text>
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 12,
+            }
+          }
+        >
+          <Text
+            style={
+              {
+                "color": "#6b7280",
+                "fontSize": 12,
+                "fontWeight": "500",
+              }
+            }
+          >
+            Quantity
+          </Text>
+          <Text
+            style={
+              [
+                {
+                  "color": "#ffffff",
+                  "fontSize": 13,
+                  "fontWeight": "600",
+                  "textAlign": "right",
+                },
+                null,
+              ]
+            }
+          >
+            10 grams
+          </Text>
+        </View>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "borderTopColor": "#333333",
+          "borderTopWidth": 1,
+          "marginTop": 4,
+          "paddingTop": 20,
+        }
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#d1d5db",
+            "fontSize": 14,
+            "fontWeight": "400",
+            "letterSpacing": 0.1,
+            "lineHeight": 20,
+          }
+        }
+      >
+        Gold showing steady appreciation with strong commodity fundamentals.
+      </Text>
+    </View>
+  </View>,
+]
+`;
+
+exports[`UnifiedAssetCard Visual Consistency Tests Snapshot Tests for Visual Regression matches snapshot for physical asset - visual consistency baseline: physical-asset-visual-consistency 1`] = `
+<View
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": undefined,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  collapsable={false}
+  focusable={true}
+  onClick={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  style={
+    {
+      "backgroundColor": "#1f1f1f",
+      "borderRadius": 16,
+      "elevation": 12,
+      "marginBottom": 20,
+      "marginHorizontal": 20,
+      "opacity": 1,
+      "padding": 20,
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 8,
+        "width": 0,
+      },
+      "shadowOpacity": 0.4,
+      "shadowRadius": 12,
+    }
+  }
+  testID="unified-asset-card"
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+        "marginBottom": 20,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flex": 1,
+          "flexDirection": "row",
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "backgroundColor": "#374151",
+            "borderRadius": 8,
+            "height": 40,
+            "justifyContent": "center",
+            "marginRight": 16,
+            "width": 40,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": "#ffffff",
+              "fontSize": 14,
+              "fontWeight": "800",
+            }
+          }
+        >
+          GI
+        </Text>
+      </View>
+      <View
+        style={
+          {
+            "flex": 1,
+          }
+        }
+      >
+        <Text
+          numberOfLines={1}
+          style={
+            {
+              "color": "#ffffff",
+              "fontSize": 17,
+              "fontWeight": "600",
+              "lineHeight": 20,
+              "marginBottom": 4,
+            }
+          }
+        >
+          Gold Investment
+        </Text>
+        <Text
+          style={
+            {
+              "color": "#9ca3af",
+              "fontSize": 13,
+              "fontWeight": "500",
+              "letterSpacing": 0.2,
+            }
+          }
+        >
+          GI
+        </Text>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "flex-end",
+        }
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#ffffff",
+            "fontSize": 20,
+            "fontWeight": "700",
+            "letterSpacing": -0.2,
+            "marginBottom": 2,
+          }
+        }
+      >
+        ₹5500.00
+      </Text>
+      <Text
+        style={
+          [
+            {
+              "fontSize": 14,
+              "fontWeight": "600",
+              "letterSpacing": 0.1,
+            },
+            {
+              "color": "#22c55e",
+            },
+          ]
+        }
+      >
+        ↑ 10.00%
+      </Text>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "flexDirection": "row",
+        "marginBottom": 24,
+        "marginTop": 4,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "flex": 1,
+          "flexDirection": "row",
+          "marginRight": 24,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "height": 80,
+            "justifyContent": "space-between",
+            "paddingBottom": 4,
+            "paddingRight": 10,
+            "paddingTop": 4,
+            "width": 44,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": "#6b7280",
+              "fontSize": 11,
+              "fontWeight": "500",
+              "textAlign": "right",
+            }
+          }
+        >
+          5500
+        </Text>
+        <Text
+          style={
+            {
+              "color": "#6b7280",
+              "fontSize": 11,
+              "fontWeight": "500",
+              "textAlign": "right",
+            }
+          }
+        >
+          5211
+        </Text>
+        <Text
+          style={
+            {
+              "color": "#6b7280",
+              "fontSize": 11,
+              "fontWeight": "500",
+              "textAlign": "right",
+            }
+          }
+        >
+          4923
+        </Text>
+      </View>
+      <View
+        style={
+          {
+            "flex": 1,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "height": 80,
+              "position": "relative",
+            }
+          }
+        >
+          <RNSVGSvgView
+            height={80}
+            width={140}
+          >
+            <RNSVGLine
+              stroke="#22c55e"
+              strokeWidth="2"
+              x1={0}
+              x2={12.727272727272728}
+              y1={80}
+              y2={74.10592676506559}
+            />
+            <RNSVGLine
+              stroke="#22c55e"
+              strokeWidth="2"
+              x1={12.727272727272728}
+              x2={25.454545454545457}
+              y1={74.10592676506559}
+              y2={69.91718169509015}
+            />
+            <RNSVGLine
+              stroke="#22c55e"
+              strokeWidth="2"
+              x1={25.454545454545457}
+              x2={38.18181818181818}
+              y1={69.91718169509015}
+              y2={64.75812734535391}
+            />
+            <RNSVGLine
+              stroke="#22c55e"
+              strokeWidth="2"
+              x1={38.18181818181818}
+              x2={50.909090909090914}
+              y1={64.75812734535391}
+              y2={60.49196119071854}
+            />
+            <RNSVGLine
+              stroke="#22c55e"
+              strokeWidth="2"
+              x1={50.909090909090914}
+              x2={63.63636363636363}
+              y1={60.49196119071854}
+              y2={54.55225333546261}
+            />
+            <RNSVGLine
+              stroke="#22c55e"
+              strokeWidth="2"
+              x1={63.63636363636363}
+              x2={76.36363636363636}
+              y1={54.55225333546261}
+              y2={50.125271035676185}
+            />
+            <RNSVGLine
+              stroke="#22c55e"
+              strokeWidth="2"
+              x1={76.36363636363636}
+              x2={89.0909090909091}
+              y1={50.125271035676185}
+              y2={46.44481925071405}
+            />
+            <RNSVGLine
+              stroke="#22c55e"
+              strokeWidth="2"
+              x1={89.0909090909091}
+              x2={101.81818181818183}
+              y1={46.44481925071405}
+              y2={42.70713654628416}
+            />
+            <RNSVGLine
+              stroke="#22c55e"
+              strokeWidth="2"
+              x1={101.81818181818183}
+              x2={114.54545454545455}
+              y1={42.70713654628416}
+              y2={37.68281960694935}
+            />
+            <RNSVGLine
+              stroke="#22c55e"
+              strokeWidth="2"
+              x1={114.54545454545455}
+              x2={127.27272727272727}
+              y1={37.68281960694935}
+              y2={33.30534988525223}
+            />
+            <RNSVGLine
+              stroke="#22c55e"
+              strokeWidth="2"
+              x1={127.27272727272727}
+              x2={140}
+              y1={33.30534988525223}
+              y2={0}
+            />
+          </RNSVGSvgView>
+        </View>
+        <Text
+          style={
+            {
+              "color": "#6b7280",
+              "fontSize": 11,
+              "fontWeight": "500",
+              "marginTop": 10,
+              "textAlign": "left",
+            }
+          }
+        >
+          3:52 PM
+        </Text>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "justifyContent": "space-between",
+          "paddingTop": 4,
+          "width": 130,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "justifyContent": "space-between",
+            "marginBottom": 12,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": "#6b7280",
+              "fontSize": 12,
+              "fontWeight": "500",
+            }
+          }
+        >
+          Volume
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#ffffff",
+                "fontSize": 13,
+                "fontWeight": "600",
+                "textAlign": "right",
+              },
+              null,
+            ]
+          }
+        >
+          1.28K
+        </Text>
+      </View>
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "justifyContent": "space-between",
+            "marginBottom": 12,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": "#6b7280",
+              "fontSize": 12,
+              "fontWeight": "500",
+            }
+          }
+        >
+          Market Cap
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#ffffff",
+                "fontSize": 13,
+                "fontWeight": "600",
+                "textAlign": "right",
+              },
+              null,
+            ]
+          }
+        >
+          5.7M
+        </Text>
+      </View>
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "justifyContent": "space-between",
+            "marginBottom": 12,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": "#6b7280",
+              "fontSize": 12,
+              "fontWeight": "500",
+            }
+          }
+        >
+          Purchase Price
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#ffffff",
+                "fontSize": 13,
+                "fontWeight": "600",
+                "textAlign": "right",
+              },
+              null,
+            ]
+          }
+        >
+          ₹5,000.00
+        </Text>
+      </View>
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "justifyContent": "space-between",
+            "marginBottom": 12,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": "#6b7280",
+              "fontSize": 12,
+              "fontWeight": "500",
+            }
+          }
+        >
+          Quantity
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#ffffff",
+                "fontSize": 13,
+                "fontWeight": "600",
+                "textAlign": "right",
+              },
+              null,
+            ]
+          }
+        >
+          10 grams
+        </Text>
+      </View>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "borderTopColor": "#333333",
+        "borderTopWidth": 1,
+        "marginTop": 4,
+        "paddingTop": 20,
+      }
+    }
+  >
+    <Text
+      style={
+        {
+          "color": "#d1d5db",
+          "fontSize": 14,
+          "fontWeight": "400",
+          "letterSpacing": 0.1,
+          "lineHeight": 20,
+        }
+      }
+    >
+      Gold showing steady appreciation with strong commodity fundamentals.
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`UnifiedAssetCard Visual Consistency Tests Snapshot Tests for Visual Regression matches snapshot for tradable asset - visual consistency baseline: tradable-asset-visual-consistency 1`] = `
+<View
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": undefined,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  collapsable={false}
+  focusable={true}
+  onClick={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  style={
+    {
+      "backgroundColor": "#1f1f1f",
+      "borderRadius": 16,
+      "elevation": 12,
+      "marginBottom": 20,
+      "marginHorizontal": 20,
+      "opacity": 1,
+      "padding": 20,
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 8,
+        "width": 0,
+      },
+      "shadowOpacity": 0.4,
+      "shadowRadius": 12,
+    }
+  }
+  testID="unified-asset-card"
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+        "marginBottom": 20,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flex": 1,
+          "flexDirection": "row",
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "backgroundColor": "#374151",
+            "borderRadius": 8,
+            "height": 40,
+            "justifyContent": "center",
+            "marginRight": 16,
+            "width": 40,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": "#ffffff",
+              "fontSize": 14,
+              "fontWeight": "800",
+            }
+          }
+        >
+          AAPL
+        </Text>
+      </View>
+      <View
+        style={
+          {
+            "flex": 1,
+          }
+        }
+      >
+        <Text
+          numberOfLines={1}
+          style={
+            {
+              "color": "#ffffff",
+              "fontSize": 17,
+              "fontWeight": "600",
+              "lineHeight": 20,
+              "marginBottom": 4,
+            }
+          }
+        >
+          Apple Inc.
+        </Text>
+        <Text
+          style={
+            {
+              "color": "#9ca3af",
+              "fontSize": 13,
+              "fontWeight": "500",
+              "letterSpacing": 0.2,
+            }
+          }
+        >
+          AAPL
+        </Text>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "flex-end",
+        }
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#ffffff",
+            "fontSize": 20,
+            "fontWeight": "700",
+            "letterSpacing": -0.2,
+            "marginBottom": 2,
+          }
+        }
+      >
+        $175.00
+      </Text>
+      <Text
+        style={
+          [
+            {
+              "fontSize": 14,
+              "fontWeight": "600",
+              "letterSpacing": 0.1,
+            },
+            {
+              "color": "#22c55e",
+            },
+          ]
+        }
+      >
+        ↑ 16.67%
+      </Text>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "flexDirection": "row",
+        "marginBottom": 24,
+        "marginTop": 4,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "flex": 1,
+          "flexDirection": "row",
+          "marginRight": 24,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "height": 80,
+            "justifyContent": "space-between",
+            "paddingBottom": 4,
+            "paddingRight": 10,
+            "paddingTop": 4,
+            "width": 44,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": "#6b7280",
+              "fontSize": 11,
+              "fontWeight": "500",
+              "textAlign": "right",
+            }
+          }
+        >
+          175
+        </Text>
+        <Text
+          style={
+            {
+              "color": "#6b7280",
+              "fontSize": 11,
+              "fontWeight": "500",
+              "textAlign": "right",
+            }
+          }
+        >
+          166
+        </Text>
+        <Text
+          style={
+            {
+              "color": "#6b7280",
+              "fontSize": 11,
+              "fontWeight": "500",
+              "textAlign": "right",
+            }
+          }
+        >
+          157
+        </Text>
+      </View>
+      <View
+        style={
+          {
+            "flex": 1,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "height": 80,
+              "position": "relative",
+            }
+          }
+        >
+          <RNSVGSvgView
+            height={80}
+            width={140}
+          >
+            <RNSVGLine
+              stroke="#22c55e"
+              strokeWidth="2"
+              x1={0}
+              x2={12.727272727272728}
+              y1={80}
+              y2={74.29078278527642}
+            />
+            <RNSVGLine
+              stroke="#22c55e"
+              strokeWidth="2"
+              x1={12.727272727272728}
+              x2={25.454545454545457}
+              y1={74.29078278527642}
+              y2={71.1565288405579}
+            />
+            <RNSVGLine
+              stroke="#22c55e"
+              strokeWidth="2"
+              x1={25.454545454545457}
+              x2={38.18181818181818}
+              y1={71.1565288405579}
+              y2={66.93278677257337}
+            />
+            <RNSVGLine
+              stroke="#22c55e"
+              strokeWidth="2"
+              x1={38.18181818181818}
+              x2={50.909090909090914}
+              y1={66.93278677257337}
+              y2={63.616820321081946}
+            />
+            <RNSVGLine
+              stroke="#22c55e"
+              strokeWidth="2"
+              x1={50.909090909090914}
+              x2={63.63636363636363}
+              y1={63.616820321081946}
+              y2={60.182517281160585}
+            />
+            <RNSVGLine
+              stroke="#22c55e"
+              strokeWidth="2"
+              x1={63.63636363636363}
+              x2={76.36363636363636}
+              y1={60.182517281160585}
+              y2={54.811190667516996}
+            />
+            <RNSVGLine
+              stroke="#22c55e"
+              strokeWidth="2"
+              x1={76.36363636363636}
+              x2={89.0909090909091}
+              y1={54.811190667516996}
+              y2={49.57349712394098}
+            />
+            <RNSVGLine
+              stroke="#22c55e"
+              strokeWidth="2"
+              x1={89.0909090909091}
+              x2={101.81818181818183}
+              y1={49.57349712394098}
+              y2={43.719088634116154}
+            />
+            <RNSVGLine
+              stroke="#22c55e"
+              strokeWidth="2"
+              x1={101.81818181818183}
+              x2={114.54545454545455}
+              y1={43.719088634116154}
+              y2={40.59348650977578}
+            />
+            <RNSVGLine
+              stroke="#22c55e"
+              strokeWidth="2"
+              x1={114.54545454545455}
+              x2={127.27272727272727}
+              y1={40.59348650977578}
+              y2={37.44454805005763}
+            />
+            <RNSVGLine
+              stroke="#22c55e"
+              strokeWidth="2"
+              x1={127.27272727272727}
+              x2={140}
+              y1={37.44454805005763}
+              y2={0}
+            />
+          </RNSVGSvgView>
+        </View>
+        <Text
+          style={
+            {
+              "color": "#6b7280",
+              "fontSize": 11,
+              "fontWeight": "500",
+              "marginTop": 10,
+              "textAlign": "left",
+            }
+          }
+        >
+          3:52 PM
+        </Text>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "justifyContent": "space-between",
+          "paddingTop": 4,
+          "width": 130,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "justifyContent": "space-between",
+            "marginBottom": 12,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": "#6b7280",
+              "fontSize": 12,
+              "fontWeight": "500",
+            }
+          }
+        >
+          Volume
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#ffffff",
+                "fontSize": 13,
+                "fontWeight": "600",
+                "textAlign": "right",
+              },
+              null,
+            ]
+          }
+        >
+          45.2M
+        </Text>
+      </View>
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "justifyContent": "space-between",
+            "marginBottom": 12,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": "#6b7280",
+              "fontSize": 12,
+              "fontWeight": "500",
+            }
+          }
+        >
+          Market Cap
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#ffffff",
+                "fontSize": 13,
+                "fontWeight": "600",
+                "textAlign": "right",
+              },
+              null,
+            ]
+          }
+        >
+          2.9T
+        </Text>
+      </View>
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "justifyContent": "space-between",
+            "marginBottom": 12,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": "#6b7280",
+              "fontSize": 12,
+              "fontWeight": "500",
+            }
+          }
+        >
+          P/E Ratio
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#ffffff",
+                "fontSize": 13,
+                "fontWeight": "600",
+                "textAlign": "right",
+              },
+              null,
+            ]
+          }
+        >
+          28.45
+        </Text>
+      </View>
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "justifyContent": "space-between",
+            "marginBottom": 12,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": "#6b7280",
+              "fontSize": 12,
+              "fontWeight": "500",
+            }
+          }
+        >
+          Dividend Yield
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#ffffff",
+                "fontSize": 13,
+                "fontWeight": "600",
+                "textAlign": "right",
+              },
+              null,
+            ]
+          }
+        >
+          3.25%
+        </Text>
+      </View>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "borderTopColor": "#333333",
+        "borderTopWidth": 1,
+        "marginTop": 4,
+        "paddingTop": 20,
+      }
+    }
+  >
+    <Text
+      style={
+        {
+          "color": "#d1d5db",
+          "fontSize": 14,
+          "fontWeight": "400",
+          "letterSpacing": 0.1,
+          "lineHeight": 20,
+        }
+      }
+    >
+      Apple stock showing strong performance with solid fundamentals and positive market sentiment.
+    </Text>
+  </View>
+</View>
+`;

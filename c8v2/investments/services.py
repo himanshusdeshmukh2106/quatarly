@@ -44,7 +44,7 @@ class MarketDataService:
                 'name': info.get('longName', f"{symbol} Company"),
                 'sector': info.get('sector'),
                 'market_cap': info.get('marketCap'),
-                'dividend_yield': info.get('dividendYield'),
+                'growth_rate': info.get('dividendYield'),  # Store dividend yield as growth rate
                 'exchange': info.get('exchange', 'NASDAQ'),
                 'currency': info.get('currency', 'USD'),
             }

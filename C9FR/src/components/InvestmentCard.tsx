@@ -1,385 +1,437 @@
-import React, { useContext, memo, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
-import { ThemeContext } from '../context/ThemeContext';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Investment, ChartTouchData } from '../types';
-import CandlestickChart from './CandlestickChart';
+import React, { memo, useMemo, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+} from 'react-native';
+import Svg, { Line, Path, Defs, LinearGradient, Stop } from 'react-native-svg';
 
-interface InvestmentCardProps {
-  investment: Investment;
-  onInsightsPress: (investment: Investment) => void;
-  onChartInteraction?: (touchData: ChartTouchData) => void;
+export interface InvestmentData {
+  id: string;
+  name: string;
+  symbol: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  volume: string;
+  marketCap: string;
+  peRatio: number;
+  dividendYield: string;
+  chartData: readonly number[];
+  insight: string;
+  time: string;
 }
 
-const InvestmentCard: React.FC<InvestmentCardProps> = ({
+interface InvestmentCardProps {
+  investment: InvestmentData;
+  index: number;
+  onPress?: (investment: InvestmentData) => void;
+  onLongPress?: (investment: InvestmentData) => void;
+  groupPosition?: 'single' | 'top' | 'bottom' | 'middle';
+}
+
+const OptimizedInvestmentCard: React.FC<InvestmentCardProps> = memo(({
   investment,
-  onInsightsPress,
-  onChartInteraction,
+  index,
+  onPress,
+  onLongPress,
+  groupPosition = 'single',
 }) => {
-  const { theme } = useContext(ThemeContext);
-  const [_chartLoading, _setChartLoading] = useState(false);
-  const [_chartError, _setChartError] = useState(false);
-  const screenWidth = Dimensions.get('window').width;
-
-  const formatCurrency = (amount: number, currency: string = 'INR') => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 2,
-    }).format(amount);
-  };
-
-  const formatPercentage = (percentage: number) => {
-    const sign = percentage >= 0 ? '+' : '';
-    return `${sign}${percentage.toFixed(2)}%`;
-  };
-
-  const getChangeColor = (change: number) => {
-    if (change > 0) return theme.success;
-    if (change < 0) return theme.error;
-    return theme.textMuted;
-  };
-
-  const getAssetTypeIcon = (assetType: string) => {
-    const iconMap: Record<string, string> = {
-      'stock': 'chart-line',
-      'etf': 'chart-box',
-      'mutual_fund': 'chart-pie',
-      'crypto': 'currency-btc',
-      'bond': 'certificate',
+  // Memoize computed values
+  const computedValues = useMemo(() => {
+    const isNegative = investment.change < 0;
+    const changeColor = isNegative ? '#ef4444' : '#22c55e';
+    const changeIcon = isNegative ? '↓' : '↗';
+    const backgroundColor = investment.id === '1' ? '#ef4444' : '#6b7280';
+    
+    return {
+      isNegative,
+      changeColor,
+      changeIcon,
+      backgroundColor,
     };
-    return iconMap[assetType] || 'chart-line';
-  };
+  }, [investment.change, investment.id]);
 
-  const getRiskLevelColor = (riskLevel: string) => {
-    const colorMap: Record<string, string> = {
-      'low': theme.success,
-      'medium': theme.warning,
-      'high': theme.error,
-    };
-    return colorMap[riskLevel] || theme.textMuted;
-  };
+  // Memoize chart data processing
+  const chartPaths = useMemo(() => {
+    if (!investment.chartData || investment.chartData.length < 2) {
+      return null;
+    }
+
+    const minPrice = Math.min(...investment.chartData);
+    const maxPrice = Math.max(...investment.chartData);
+    const priceRange = maxPrice - minPrice || 1;
+
+    let pathData = '';
+    const firstPoint = investment.chartData[0];
+    const firstY = 80 - ((firstPoint - minPrice) / priceRange) * 80;
+    pathData += `M 0 80 L 0 ${firstY}`;
+
+    // Generate path for area fill
+    investment.chartData.forEach((point, idx) => {
+      const x = (idx / (investment.chartData.length - 1)) * 140;
+      const y = 80 - ((point - minPrice) / priceRange) * 80;
+      pathData += ` L ${x} ${y}`;
+    });
+
+    pathData += ` L 140 80 Z`;
+
+    // Generate line segments
+    const lineSegments = [];
+    for (let i = 0; i < investment.chartData.length - 1; i++) {
+      const x1 = (i / (investment.chartData.length - 1)) * 140;
+      const x2 = ((i + 1) / (investment.chartData.length - 1)) * 140;
+      const y1 = 80 - ((investment.chartData[i] - minPrice) / priceRange) * 80;
+      const y2 = 80 - ((investment.chartData[i + 1] - minPrice) / priceRange) * 80;
+      
+      lineSegments.push({ x1, y1, x2, y2, key: `line-${i}` });
+    }
+
+    return { pathData, lineSegments };
+  }, [investment.chartData]);
+
+  // Memoize event handlers
+  const handlePress = useCallback(() => {
+    onPress?.(investment);
+  }, [onPress, investment]);
+
+  const handleLongPress = useCallback(() => {
+    onLongPress?.(investment);
+  }, [onLongPress, investment]);
+
+  // Format price with memoization
+  const formattedPrice = useMemo(() => 
+    `₹${investment.price.toLocaleString('en-IN', { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    })}`,
+    [investment.price]
+  );
+
+  // Dynamic card styles based on group position
+  const cardStyles = useMemo(() => {
+    const baseStyle = styles.card;
+    
+    switch (groupPosition) {
+      case 'top':
+        return [baseStyle, styles.cardTop];
+      case 'bottom':
+        return [baseStyle, styles.cardBottom];
+      case 'middle':
+        return [baseStyle, styles.cardMiddle];
+      default:
+        return baseStyle;
+    }
+  }, [groupPosition]);
 
   return (
-    <View style={styles.cardContainer}>
-      {/* Main Investment Card */}
-      <TouchableOpacity 
-        style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}
-        activeOpacity={0.95}
-        accessible={true}
-        accessibilityRole="button"
-        accessibilityLabel={`Investment card for ${investment.symbol}, ${investment.name}`}
-        accessibilityHint="Double tap to view detailed investment information"
-      >
-        {/* Candlestick Chart */}
-        <View style={[styles.chartContainer, { backgroundColor: theme.background }]}>
-          {investment.chartData && investment.chartData.length > 0 ? (
-            <CandlestickChart
-              data={investment.chartData}
-              width={screenWidth - 32} // Account for card padding
-              height={150}
-              onTouch={onChartInteraction}
-              interactive={true}
-              timeframe="daily"
-            />
-          ) : (
-            <View style={styles.chartPlaceholder}>
-              <MaterialCommunityIcons 
-                name="chart-line" 
-                size={32} 
-                color={theme.textMuted} 
-              />
-              <Text style={[styles.chartPlaceholderText, { color: theme.textMuted }]}>
-                {chartLoading ? 'Loading chart...' : 'No chart data available'}
-              </Text>
-            </View>
-          )}
+    <TouchableOpacity
+      style={cardStyles}
+      onPress={handlePress}
+      onLongPress={handleLongPress}
+      activeOpacity={0.7}
+      accessibilityLabel={`Investment card for ${investment.name}`}
+      accessibilityHint="Double tap to view details, long press for options"
+    >
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.left}>
+          <View style={[styles.icon, { backgroundColor: computedValues.backgroundColor }]}>
+            <Text style={styles.iconText}>
+              {investment.id === '1' ? 'MF' : 'C'}
+            </Text>
+          </View>
+          <View style={styles.companyInfo}>
+            <Text style={styles.companyName} numberOfLines={2} ellipsizeMode="tail">
+              {investment.name}
+            </Text>
+            <Text style={styles.symbol}>
+              {investment.symbol}
+            </Text>
+          </View>
         </View>
-
-        {/* Asset Type Badge */}
-        <View style={[styles.assetTypeBadge, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <MaterialCommunityIcons 
-            name={getAssetTypeIcon(investment.assetType)} 
-            size={16} 
-            color={theme.primary} 
-          />
-        </View>
-
-        {/* Risk Level Badge */}
-        <View style={[styles.riskBadge, { backgroundColor: getRiskLevelColor(investment.riskLevel) + '20' }]}>
-          <Text style={[styles.riskText, { color: getRiskLevelColor(investment.riskLevel) }]}>
-            {investment.riskLevel.toUpperCase()}
+        <View style={styles.right}>
+          <Text style={styles.price}>
+            {formattedPrice}
           </Text>
-        </View>
-
-        {/* Content */}
-        <View style={styles.content}>
-          <View style={styles.headerRow}>
-            <View style={styles.symbolContainer}>
-              <Text style={[styles.symbol, { color: theme.text }]}>
-                {investment.symbol}
-              </Text>
-              <Text style={[styles.exchange, { color: theme.textMuted }]}>
-                {investment.exchange}
-              </Text>
-            </View>
-            <View style={styles.priceContainer}>
-              <Text style={[styles.currentPrice, { color: theme.text }]}>
-                {formatCurrency(investment.currentPrice, investment.currency)}
-              </Text>
-              <Text style={[styles.dailyChange, { color: getChangeColor(investment.dailyChange) }]}>
-                {formatPercentage(investment.dailyChangePercent)}
-              </Text>
-            </View>
-          </View>
-          
-          <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
-            {investment.name}
-          </Text>
-
-          {/* Holdings Information */}
-          <View style={styles.holdingsRow}>
-            <View style={styles.holdingItem}>
-              <Text style={[styles.holdingLabel, { color: theme.textMuted }]}>Quantity</Text>
-              <Text style={[styles.holdingValue, { color: theme.text }]}>
-                {investment.quantity.toLocaleString()}
-              </Text>
-            </View>
-            <View style={styles.holdingItem}>
-              <Text style={[styles.holdingLabel, { color: theme.textMuted }]}>Total Value</Text>
-              <Text style={[styles.holdingValue, { color: theme.text }]}>
-                {formatCurrency(investment.totalValue, investment.currency)}
-              </Text>
-            </View>
-          </View>
-
-          {/* Performance Metrics */}
-          <View style={styles.performanceRow}>
-            <View style={styles.performanceItem}>
-              <Text style={[styles.performanceLabel, { color: theme.textMuted }]}>Total P&L</Text>
-              <Text style={[styles.performanceValue, { color: getChangeColor(investment.totalGainLoss) }]}>
-                {formatCurrency(investment.totalGainLoss, investment.currency)} ({formatPercentage(investment.totalGainLossPercent)})
-              </Text>
-            </View>
-          </View>
-
-          {/* Last Updated */}
-          <View style={styles.lastUpdatedContainer}>
-            <MaterialCommunityIcons name="clock-outline" size={12} color={theme.textMuted} />
-            <Text style={[styles.lastUpdated, { color: theme.textMuted }]}>
-              Updated {new Date(investment.lastUpdated).toLocaleTimeString()}
+          <View style={[
+            styles.changeContainer,
+            { 
+              backgroundColor: computedValues.isNegative 
+                ? 'rgba(239, 68, 68, 0.15)' 
+                : 'rgba(34, 197, 94, 0.15)' 
+            }
+          ]}>
+            <Text style={[styles.change, { color: computedValues.changeColor }]}>
+              {computedValues.changeIcon} {Math.abs(investment.changePercent).toFixed(2)}%
             </Text>
           </View>
         </View>
-      </TouchableOpacity>
+      </View>
 
-      {/* AI Insights Section */}
-      <TouchableOpacity
-        style={[
-          styles.insightsCard,
-          {
-            backgroundColor: theme.accentMuted,
-            borderColor: theme.accent + '33',
-          },
-        ]}
-        onPress={() => onInsightsPress(investment)}
-        activeOpacity={0.7}
-        accessible={true}
-        accessibilityRole="button"
-        accessibilityLabel="AI Investment Insights"
-        accessibilityHint={`View AI analysis and recommendations for ${investment.symbol}`}
-      >
-        <View style={styles.insightsContent}>
-          <MaterialCommunityIcons 
-            name="sparkles" 
-            size={18} 
-            color={theme.accent} 
-            style={styles.insightsIcon} 
+      {/* Body - Chart and Stats */}
+      <View style={styles.body}>
+        {/* Chart Section */}
+        <View style={styles.chartSection}>
+          <View style={styles.yAxis}>
+            <Text style={styles.yLabel}>350</Text>
+            <Text style={styles.yLabel}>300</Text>
+            <Text style={styles.yLabel}>250</Text>
+          </View>
+
+          <View style={styles.chartContainer}>
+            <View style={styles.chart}>
+              {chartPaths && (
+                <Svg width={140} height={80}>
+                  <Defs>
+                    <LinearGradient id="positiveGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <Stop offset="0%" stopColor="#22c55e" stopOpacity="0.3" />
+                      <Stop offset="100%" stopColor="#22c55e" stopOpacity="0.05" />
+                    </LinearGradient>
+                    <LinearGradient id="negativeGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <Stop offset="0%" stopColor="#ef4444" stopOpacity="0.3" />
+                      <Stop offset="100%" stopColor="#ef4444" stopOpacity="0.05" />
+                    </LinearGradient>
+                  </Defs>
+
+                  {/* Area fill */}
+                  <Path
+                    d={chartPaths.pathData}
+                    fill={computedValues.isNegative ? "url(#negativeGradient)" : "url(#positiveGradient)"}
+                  />
+
+                  {/* Chart lines */}
+                  {chartPaths.lineSegments.map(segment => (
+                    <Line
+                      key={segment.key}
+                      x1={segment.x1}
+                      y1={segment.y1}
+                      x2={segment.x2}
+                      y2={segment.y2}
+                      stroke={computedValues.changeColor}
+                      strokeWidth="2"
+                    />
+                  ))}
+                </Svg>
+              )}
+            </View>
+            <Text style={styles.time}>
+              {investment.time}
+            </Text>
+          </View>
+        </View>
+
+        {/* Stats Section */}
+        <View style={styles.statsSection}>
+          <StatRow 
+            label="Volume" 
+            value={investment.volume} 
           />
-          <View style={styles.insightsText}>
-            <Text style={[styles.insightsTitle, { color: theme.accent }]}>
-              AI Investment Insights
-            </Text>
-            <Text style={[styles.insightsPreview, { color: theme.text }]} numberOfLines={3}>
-              {investment.aiAnalysis}
-            </Text>
-          </View>
-          <MaterialCommunityIcons 
-            name="chevron-right" 
-            size={20} 
-            color={theme.accent} 
-            style={styles.expandButton}
+          <StatRow 
+            label="Market Cap" 
+            value={investment.marketCap} 
+          />
+          <StatRow 
+            label="P/E Ratio" 
+            value={investment.peRatio.toString()} 
+          />
+          <StatRow 
+            label="Dividend Yield" 
+            value={investment.dividendYield} 
           />
         </View>
-      </TouchableOpacity>
-    </View>
+      </View>
+
+      {/* Insight */}
+      <View style={styles.insightContainer}>
+        <Text style={styles.insightText} numberOfLines={3}>
+          {investment.insight}
+        </Text>
+      </View>
+    </TouchableOpacity>
   );
-};
+});
+
+// Memoized StatRow component
+const StatRow: React.FC<{
+  label: string;
+  value: string;
+}> = memo(({ label, value }) => (
+  <View style={styles.statRow}>
+    <Text style={styles.statLabel}>{label}</Text>
+    <Text style={styles.statValue}>{value}</Text>
+  </View>
+));
 
 const styles = StyleSheet.create({
-  cardContainer: {
+  card: {
+    backgroundColor: '#1f1f1f', // Dark background matching image
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4, // Stronger shadow for dark theme
+    shadowRadius: 12,
+    elevation: 12,
+  },
+  cardTop: {
+    marginBottom: 0,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  cardBottom: {
+    marginTop: 0,
+    marginBottom: 16,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+  },
+  cardMiddle: {
+    marginTop: 0,
+    marginBottom: 0,
+    borderRadius: 0,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: 20,
   },
-  card: {
-    borderRadius: 16,
-    borderWidth: 1,
-    overflow: 'hidden',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    marginBottom: 8,
-  },
-  chartContainer: {
-    width: '100%',
-    height: 150,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  chartPlaceholder: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chartPlaceholderText: {
-    fontSize: 12,
-    marginTop: 8,
-  },
-  assetTypeBadge: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    borderRadius: 20,
-    padding: 6,
-    elevation: 2,
-    borderWidth: 1,
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  riskBadge: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  riskText: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  content: {
-    padding: 20,
-  },
-  headerRow: {
+  left: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  symbolContainer: {
     flex: 1,
+    maxWidth: '60%',
+  },
+  icon: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  iconText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  companyInfo: {
+    flex: 1,
+    maxWidth: 120,
+  },
+  companyName: {
+    color: '#ffffff', // White text for dark theme
+    fontSize: 17,
+    fontWeight: '600',
+    marginBottom: 4,
+    lineHeight: 20,
+    maxWidth: 120,
   },
   symbol: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  exchange: {
-    fontSize: 12,
+    color: '#9ca3af', // Light gray for symbol
+    fontSize: 13,
     fontWeight: '500',
+    letterSpacing: 0.2,
   },
-  priceContainer: {
-    alignItems: 'flex-end',
-  },
-  currentPrice: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  dailyChange: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  name: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 16,
-  },
-  holdingsRow: {
+  right: {
+    minWidth: '35%',
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  holdingItem: {
-    flex: 1,
-  },
-  holdingLabel: {
-    fontSize: 12,
-    marginBottom: 2,
-  },
-  holdingValue: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  performanceRow: {
-    marginBottom: 12,
-  },
-  performanceItem: {
-    flex: 1,
-  },
-  performanceLabel: {
-    fontSize: 12,
-    marginBottom: 2,
-  },
-  performanceValue: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  lastUpdatedContainer: {
-    flexDirection: 'row',
+    justifyContent: 'flex-end',
     alignItems: 'center',
   },
-  lastUpdated: {
-    fontSize: 10,
-    marginLeft: 4,
-  },
-  insightsCard: {
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 16,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-  },
-  insightsContent: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  insightsIcon: {
+  price: {
+    color: '#ffffff', // White text for price
+    fontSize: 20,
+    fontWeight: '700',
+    letterSpacing: -0.2,
     marginRight: 8,
-    marginTop: 2,
   },
-  insightsText: {
+  changeContainer: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  change: {
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 0.1,
+  },
+  body: {
+    flexDirection: 'row',
+    marginBottom: 24,
+    marginTop: 4,
+  },
+  chartSection: {
+    flex: 1,
+    flexDirection: 'row',
+    marginRight: 24,
+  },
+  yAxis: {
+    width: 44,
+    height: 80,
+    justifyContent: 'space-between',
+    paddingRight: 10,
+    paddingTop: 4,
+    paddingBottom: 4,
+  },
+  yLabel: {
+    color: '#6b7280', // Gray for Y-axis labels
+    fontSize: 11,
+    fontWeight: '500',
+    textAlign: 'right',
+  },
+  chartContainer: {
     flex: 1,
   },
-  insightsTitle: {
-    fontWeight: '700',
-    marginBottom: 6,
-    fontSize: 15,
+  chart: {
+    height: 80,
+    position: 'relative',
   },
-  insightsPreview: {
-    fontSize: 14,
-    lineHeight: 20,
+  time: {
+    color: '#6b7280', // Gray for time
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 10,
+    textAlign: 'left',
   },
-  expandButton: {
-    marginLeft: 8,
+  statsSection: {
+    width: 130,
+    justifyContent: 'space-between',
+    paddingTop: 4,
+  },
+  statRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  statLabel: {
+    color: '#6b7280', // Gray for stat labels
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  statValue: {
+    color: '#ffffff', // White for stat values
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'right',
+  },
+  insightContainer: {
+    paddingTop: 20,
+    marginTop: 4,
+  },
+  insightText: {
+    color: '#d1d5db', // Light gray for insight text
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '400',
+    letterSpacing: 0.1,
   },
 });
 
-export default memo(InvestmentCard);
+OptimizedInvestmentCard.displayName = 'OptimizedInvestmentCard';
+
+export default OptimizedInvestmentCard;
