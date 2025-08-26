@@ -32,14 +32,30 @@ app.conf.update(
 
 # Periodic tasks configuration
 app.conf.beat_schedule = {
-    'daily-price-and-data-update': {
-        'task': 'investments.tasks.daily_price_and_data_update',
+    # End-of-day comprehensive data refresh (runs at 6 PM IST)
+    'end-of-day-data-refresh': {
+        'task': 'investments.tasks.end_of_day_data_refresh',
         'schedule': 60.0 * 60.0 * 24.0,  # Run daily (24 hours)
-        # 'schedule': crontab(hour=9, minute=0),  # Run at 9 AM daily
+        # 'schedule': crontab(hour=18, minute=0),  # Run at 6 PM daily (market close + buffer)
     },
+    
+    # Sync user investments with centralized data (every 4 hours)
+    'sync-user-investments': {
+        'task': 'investments.tasks.sync_user_investments_with_centralized_data',
+        'schedule': 60.0 * 60.0 * 4.0,  # Run every 4 hours
+    },
+    
+    # Legacy precious metals refresh (keep for compatibility)
     'refresh-precious-metals': {
         'task': 'investments.tasks.refresh_precious_metals_task',
         'schedule': 60.0 * 60.0 * 6.0,  # Run every 6 hours
+    },
+    
+    # Weekly cleanup task
+    'weekly-data-cleanup': {
+        'task': 'investments.tasks.cleanup_stale_data',
+        'schedule': 60.0 * 60.0 * 24.0 * 7.0,  # Run weekly
+        # 'schedule': crontab(hour=2, minute=0, day_of_week=1),  # Monday at 2 AM
     },
 }
 

@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import Svg, { Line, Path, Defs, LinearGradient, Stop } from 'react-native-svg';
+import { getHeaderFont, getBodyFont, getMonoFont } from '../config/fonts';
 
 export interface InvestmentData {
   id: string;
@@ -314,27 +315,28 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   iconText: {
+    fontFamily: getMonoFont('semiBold'), // IBM Plex Mono SemiBold for icons
     color: '#ffffff',
     fontSize: 14,
-    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   companyInfo: {
     flex: 1,
     maxWidth: 120,
   },
   companyName: {
+    fontFamily: getHeaderFont('medium'), // FK Grotesk Medium for company names
     color: '#ffffff', // White text for dark theme
     fontSize: 17,
-    fontWeight: '600',
     marginBottom: 4,
     lineHeight: 20,
     maxWidth: 120,
   },
   symbol: {
+    fontFamily: getMonoFont('regular'), // IBM Plex Mono Regular for symbols
     color: '#9ca3af', // Light gray for symbol
     fontSize: 13,
-    fontWeight: '500',
-    letterSpacing: 0.2,
+    letterSpacing: 0.5,
   },
   right: {
     minWidth: '35%',
@@ -343,9 +345,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   price: {
+    fontFamily: getMonoFont('medium'), // IBM Plex Mono Medium for prices
     color: '#ffffff', // White text for price
     fontSize: 20,
-    fontWeight: '700',
     letterSpacing: -0.2,
     marginRight: 8,
   },
@@ -355,9 +357,9 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   change: {
+    fontFamily: getMonoFont('medium'), // IBM Plex Mono Medium for percentage changes
     fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: 0.1,
+    letterSpacing: 0.2,
   },
   body: {
     flexDirection: 'row',
@@ -378,10 +380,11 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   yLabel: {
+    fontFamily: getMonoFont('regular'), // IBM Plex Mono Regular for Y-axis values
     color: '#6b7280', // Gray for Y-axis labels
     fontSize: 11,
-    fontWeight: '500',
     textAlign: 'right',
+    letterSpacing: 0.2,
   },
   chartContainer: {
     flex: 1,
@@ -391,9 +394,9 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   time: {
+    fontFamily: getBodyFont('light'), // IBM Plex Sans Light for timestamps
     color: '#6b7280', // Gray for time
     fontSize: 11,
-    fontWeight: '500',
     marginTop: 10,
     textAlign: 'left',
   },
@@ -409,25 +412,26 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   statLabel: {
+    fontFamily: getBodyFont('light'), // IBM Plex Sans Light for stat labels
     color: '#6b7280', // Gray for stat labels
     fontSize: 12,
-    fontWeight: '500',
   },
   statValue: {
+    fontFamily: getMonoFont('medium'), // IBM Plex Mono Medium for stat values
     color: '#ffffff', // White for stat values
     fontSize: 13,
-    fontWeight: '600',
     textAlign: 'right',
+    letterSpacing: 0.2,
   },
   insightContainer: {
     paddingTop: 20,
     marginTop: 4,
   },
   insightText: {
+    fontFamily: getBodyFont('regular'), // IBM Plex Sans Regular for insights
     color: '#d1d5db', // Light gray for insight text
     fontSize: 16,
     lineHeight: 22,
-    fontWeight: '400',
     letterSpacing: 0.1,
   },
 });

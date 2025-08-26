@@ -4,37 +4,144 @@ from decimal import Decimal
 from .models import Investment
 from .perplexity_service import PerplexityAPIService, perplexity_rate_limiter
 from .bharatsm_service import FinalOptimizedBharatSMService, final_bharatsm_service, get_bharatsm_frontend_data, get_bharatsm_basic_info
+from .google_sheets_service import google_sheets_service
+from .market_data_models import CentralizedOHLCData, CentralizedMarketData, AssetSymbol
+from django.utils import timezone
 import time
 
 logger = logging.getLogger(__name__)
 
 
 class DataEnrichmentService:
-    """Service for enriching investment data using external APIs"""
+    """Service for enriching investment data using database-first approach with external API fallbacks"""
+    
+    @classmethod
+    def get_cached_market_data(cls, symbol: str, asset_type: str) -> Optional[Dict]:
+        """Get market data from database cache if available and not stale (24-hour cache)"""
+        try:
+            market_data = CentralizedMarketData.objects.filter(
+                symbol=symbol,
+                asset_type=asset_type
+            ).first()
+            
+            if market_data:
+                # Check if data is still fresh (24 hours)
+                hours_since_update = (timezone.now() - market_data.last_updated).total_seconds() / 3600
+                
+                if hours_since_update < 24.0:  # 24-hour cache
+                    logger.info(f"Returning cached market data for {symbol} (age: {hours_since_update:.1f}h)")
+                    return {
+                        'current_price': float(market_data.pe_ratio) if market_data.pe_ratio else None,  # Note: This may need adjustment based on your model
+                        'volume': market_data.volume,
+                        'volume_raw': int(market_data.volume_raw) if market_data.volume_raw else None,
+                        'market_cap': float(market_data.market_cap) if market_data.market_cap else None,
+                        'pe_ratio': float(market_data.pe_ratio) if market_data.pe_ratio else None,
+                        'company_name': market_data.description,
+                        'sector': market_data.sector,
+                        'high_52': float(market_data.fifty_two_week_high) if market_data.fifty_two_week_high else None,
+                        'low_52': float(market_data.fifty_two_week_low) if market_data.fifty_two_week_low else None,
+                        'beta': float(market_data.beta) if market_data.beta else None,
+                        'source': f'database_cache_{market_data.data_source}',
+                        'last_updated': market_data.last_updated.isoformat()
+                    }
+                else:
+                    logger.info(f"Cached market data for {symbol} is stale ({hours_since_update:.1f}h old)")
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error fetching cached market data for {symbol}: {e}")
+            return None
+    
+    @classmethod
+    def get_cached_ohlc_data(cls, symbol: str, asset_type: str) -> Optional[Dict]:
+        """Get OHLC data from database cache if available and not stale (24-hour cache)"""
+        try:
+            ohlc_data = CentralizedOHLCData.objects.filter(
+                symbol=symbol,
+                asset_type=asset_type,
+                timeframe='1Day'
+            ).first()
+            
+            if ohlc_data:
+                # Check if data is still fresh (24 hours)
+                hours_since_update = (timezone.now() - ohlc_data.last_updated).total_seconds() / 3600
+                
+                if hours_since_update < 24.0:  # 24-hour cache
+                    logger.info(f"Returning cached OHLC data for {symbol} (age: {hours_since_update:.1f}h)")
+                    return {
+                        'data': ohlc_data.ohlc_data,
+                        'current_price': float(ohlc_data.current_price) if ohlc_data.current_price else None,
+                        'daily_change': float(ohlc_data.daily_change) if ohlc_data.daily_change else 0.0,
+                        'daily_change_percent': float(ohlc_data.daily_change_percent) if ohlc_data.daily_change_percent else 0.0,
+                        'source': f'database_cache_{ohlc_data.data_source}',
+                        'last_updated': ohlc_data.last_updated.isoformat(),
+                        'data_points': ohlc_data.data_points_count
+                    }
+                else:
+                    logger.info(f"Cached OHLC data for {symbol} is stale ({hours_since_update:.1f}h old)")
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error fetching cached OHLC data for {symbol}: {e}")
+            return None
     
     @classmethod
     def get_basic_market_data(cls, symbol: str, asset_type: str) -> Dict:
-        """Get basic market data for immediate use during asset creation"""
-        # For Indian stocks, try BharatSM first
+        """Get basic market data for immediate use during asset creation
+        Priority: Database Cache (24h) -> Google Sheets -> BharatSM -> Perplexity
+        """
+        # Step 1: Try database cache first (24-hour cache)
+        cached_data = cls.get_cached_market_data(symbol, asset_type)
+        if cached_data:
+            return cached_data
+        
+        # Step 2: Try Google Sheets as primary data source
+        if google_sheets_service.is_available():
+            try:
+                logger.info(f"Fetching basic market data for {symbol} using Google Sheets")
+                sheets_data = google_sheets_service.fetch_market_data_batch([symbol], force_refresh=False)
+                if sheets_data and symbol in sheets_data:
+                    data = sheets_data[symbol]
+                    # Convert to expected format
+                    return {
+                        'current_price': data.get('current_price'),
+                        'volume': data.get('volume'),
+                        'market_cap': data.get('market_cap'),
+                        'pe_ratio': data.get('pe_ratio'),
+                        'company_name': data.get('company_name'),
+                        'exchange': data.get('exchange'),
+                        'currency': data.get('currency', 'INR'),
+                        'source': 'google_sheets'
+                    }
+            except Exception as e:
+                logger.warning(f"Google Sheets service failed for {symbol}: {e}")
+        
+        # Step 3: Fallback to BharatSM for Indian stocks
         if asset_type in ['stock', 'etf'] and final_bharatsm_service:
             try:
-                logger.info(f"Fetching basic market data for {symbol} using Final Optimized BharatSM")
+                logger.info(f"Fetching basic market data for {symbol} using Final Optimized BharatSM (fallback)")
                 bharatsm_data = get_bharatsm_basic_info(symbol)
                 if bharatsm_data:
+                    bharatsm_data['source'] = 'bharatsm'
                     return bharatsm_data
             except Exception as e:
                 logger.warning(f"BharatSM service failed for {symbol}: {e}")
         
-        # Fallback to Perplexity API
+        # Step 4: Final fallback to Perplexity API
         if not perplexity_rate_limiter.can_make_call():
             wait_time = perplexity_rate_limiter.wait_time()
             logger.warning(f"Rate limit reached, waiting {wait_time:.2f} seconds")
             time.sleep(wait_time)
         
         try:
-            logger.info(f"Fetching basic market data for {symbol} using Perplexity API")
+            logger.info(f"Fetching basic market data for {symbol} using Perplexity API (final fallback)")
             perplexity_rate_limiter.record_call()
-            return PerplexityAPIService.get_basic_market_data(symbol, asset_type)
+            perplexity_data = PerplexityAPIService.get_basic_market_data(symbol, asset_type)
+            if perplexity_data:
+                perplexity_data['source'] = 'perplexity'
+            return perplexity_data
         except Exception as e:
             logger.error(f"Failed to get basic market data for {symbol}: {e}")
             return {}
@@ -96,18 +203,95 @@ class DataEnrichmentService:
     
     @classmethod
     def enrich_stock_data_with_bharatsm(cls, investment: Investment) -> bool:
-        """Enrich stock/ETF data using BharatSM with Perplexity fallback"""
+        """Enrich stock/ETF data using Database Cache -> Google Sheets -> BharatSM -> Perplexity fallback"""
         if not investment.symbol:
             logger.warning(f"No symbol provided for investment {investment.id}")
             return False
         
+        database_success = False
+        google_sheets_success = False
         bharatsm_success = False
         fallback_success = False
         
         try:
-            # Step 1: Try Final Optimized BharatSM first for frontend display data
-            if final_bharatsm_service:
-                logger.info(f"Fetching frontend display data for {investment.symbol} using Final Optimized BharatSM")
+            # Step 1: Try database cache first (24-hour cache)
+            cached_data = cls.get_cached_market_data(investment.symbol, investment.asset_type)
+            if cached_data:
+                logger.info(f"Using cached market data for {investment.symbol}")
+                
+                # Update with cached data
+                if cached_data.get('volume'):
+                    investment.volume = cached_data['volume']
+                
+                if cached_data.get('market_cap'):
+                    investment.market_cap = Decimal(str(cached_data['market_cap']))
+                
+                if cached_data.get('pe_ratio'):
+                    investment.pe_ratio = Decimal(str(cached_data['pe_ratio']))
+                
+                if cached_data.get('current_price'):
+                    investment.current_price = Decimal(str(cached_data['current_price']))
+                
+                if cached_data.get('sector'):
+                    investment.sector = cached_data['sector']
+                
+                # Update investment name if available
+                if cached_data.get('company_name') and (not investment.name or investment.name == investment.symbol):
+                    investment.name = cached_data['company_name']
+                
+                # Update total value and gains
+                investment.total_value = investment.current_price * investment.quantity
+                investment.total_gain_loss = investment.total_value - (investment.average_purchase_price * investment.quantity)
+                if investment.average_purchase_price > 0:
+                    investment.total_gain_loss_percent = (investment.total_gain_loss / (investment.average_purchase_price * investment.quantity)) * 100
+                
+                database_success = True
+                logger.info(f"Successfully used cached data for {investment.symbol}")
+                return True
+            
+            # Step 2: Try Google Sheets if no cache available
+            if google_sheets_service.is_available():
+                logger.info(f"Fetching data for {investment.symbol} using Google Sheets (primary)")
+                sheets_data = google_sheets_service.fetch_market_data_batch([investment.symbol], force_refresh=False)
+                
+                if sheets_data and investment.symbol in sheets_data:
+                    data = sheets_data[investment.symbol]
+                    
+                    # Update with Google Sheets data
+                    if data.get('volume'):
+                        investment.volume = data['volume']
+                    
+                    if data.get('market_cap'):
+                        investment.market_cap = Decimal(str(data['market_cap']))
+                    
+                    if data.get('pe_ratio'):
+                        investment.pe_ratio = Decimal(str(data['pe_ratio']))
+                    
+                    if data.get('current_price'):
+                        investment.current_price = Decimal(str(data['current_price']))
+                    
+                    if data.get('daily_change'):
+                        investment.daily_change = Decimal(str(data['daily_change']))
+                    
+                    if data.get('daily_change_percent'):
+                        investment.daily_change_percent = Decimal(str(data['daily_change_percent']))
+                    
+                    # Update investment name if available
+                    if data.get('company_name') and (not investment.name or investment.name == investment.symbol):
+                        investment.name = data['company_name']
+                    
+                    # Update total value and gains
+                    investment.total_value = investment.current_price * investment.quantity
+                    investment.total_gain_loss = investment.total_value - (investment.average_purchase_price * investment.quantity)
+                    if investment.average_purchase_price > 0:
+                        investment.total_gain_loss_percent = (investment.total_gain_loss / (investment.average_purchase_price * investment.quantity)) * 100
+                    
+                    google_sheets_success = True
+                    logger.info(f"Successfully fetched Google Sheets data for {investment.symbol}")
+            
+            # Step 3: Try Final Optimized BharatSM as fallback for additional data
+            if not database_success and not google_sheets_success and final_bharatsm_service:
+                logger.info(f"Fetching frontend display data for {investment.symbol} using Final Optimized BharatSM (fallback)")
                 bharatsm_data = get_bharatsm_frontend_data(investment.symbol)
                 
                 if bharatsm_data:
@@ -136,9 +320,9 @@ class DataEnrichmentService:
                     bharatsm_success = True
                     logger.info(f"Successfully fetched BharatSM data for {investment.symbol}")
             
-            # Step 2: Fallback to Perplexity if BharatSM failed or for additional data
-            if not bharatsm_success and perplexity_rate_limiter.can_make_call():
-                logger.warning(f"BharatSM failed for {investment.symbol}, using Perplexity fallback")
+            # Step 3: Final fallback to Perplexity if both Google Sheets and BharatSM failed
+            if not google_sheets_success and not bharatsm_success and perplexity_rate_limiter.can_make_call():
+                logger.warning(f"Both Google Sheets and BharatSM failed for {investment.symbol}, using Perplexity final fallback")
                 perplexity_rate_limiter.record_call()
                 fallback_data = PerplexityAPIService.get_fallback_data(investment.symbol)
                 
@@ -163,9 +347,10 @@ class DataEnrichmentService:
                     logger.info(f"Successfully fetched Perplexity fallback data for {investment.symbol}")
             
             # Save the investment if we got any data
-            if bharatsm_success or fallback_success:
-                investment.save()
-                logger.info(f"Successfully enriched stock data for {investment.symbol} (BharatSM: {bharatsm_success}, Fallback: {fallback_success})")
+            if database_success or google_sheets_success or bharatsm_success or fallback_success:
+                if not database_success:  # Only save if data wasn't from cache
+                    investment.save()
+                logger.info(f"Successfully enriched stock data for {investment.symbol} (Database Cache: {database_success}, Google Sheets: {google_sheets_success}, BharatSM: {bharatsm_success}, Fallback: {fallback_success})")
                 return True
             else:
                 logger.warning(f"No data could be fetched for {investment.symbol}")

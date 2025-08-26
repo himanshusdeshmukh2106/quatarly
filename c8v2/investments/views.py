@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from django.utils import timezone
 from datetime import timedelta
+from decimal import Decimal
 from .models import Investment, ChartData, PriceAlert
 from .serializers import (
     InvestmentSerializer, CreateInvestmentSerializer, UpdateInvestmentSerializer,
@@ -14,7 +15,8 @@ from .serializers import (
 )
 from .services import InvestmentService, MarketDataService, AIInsightsService
 from .data_enrichment_service import DataEnrichmentService
-from .bharatsm_service import final_bharatsm_service, get_bharatsm_basic_info
+from .database_cache_service import DatabaseCacheService
+from .bharatsm_service import final_bharatsm_service, get_bharatsm_basic_info, get_bharatsm_ohlc_data
 try:
     from .tasks import enrich_investment_data_task, refresh_user_assets_task
     CELERY_AVAILABLE = True
@@ -138,6 +140,137 @@ class InvestmentViewSet(viewsets.ModelViewSet):
         serializer = InvestmentSerializer(updated_investments, many=True)
         
         return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'])
+    def ohlc_data(self, request, pk=None):
+        """Get OHLC data for line chart display from centralized storage (daily timeframe only)"""
+        investment = self.get_object()
+        
+        # Only fetch OHLC data for tradeable assets with symbols
+        if not investment.is_tradeable or not investment.symbol:
+            return Response(
+                {'error': 'OHLC data only available for tradeable assets with symbols'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get query parameters (timeframe forced to daily)
+        timeframe = '1Day'  # Fixed to daily timeframe only
+        force_refresh = request.query_params.get('force_refresh', 'false').lower() == 'true'
+        
+        try:
+            # Register this symbol in centralized system (for usage tracking)
+            from .centralized_data_service import CentralizedDataFetchingService
+            CentralizedDataFetchingService.register_symbol(
+                symbol=investment.symbol,
+                asset_type=investment.asset_type,
+                name=investment.name,
+                exchange=investment.exchange or '',
+                currency=investment.currency or 'INR'
+            )
+            
+            # Step 1: Try database cache first (24-hour cache)
+            if not force_refresh:
+                cached_ohlc = DatabaseCacheService.get_ohlc_data(
+                    investment.symbol, investment.asset_type
+                )
+                
+                if cached_ohlc:
+                    logger.info(f"Returning database cached OHLC data for {investment.symbol} ({timeframe})")
+                    return Response({
+                        'success': True,
+                        'data': cached_ohlc['data'],
+                        'current_price': cached_ohlc['current_price'],
+                        'daily_change': cached_ohlc['daily_change'],
+                        'daily_change_percent': cached_ohlc['daily_change_percent'],
+                        'last_updated': cached_ohlc['last_updated'],
+                        'source': cached_ohlc['data_source'],
+                        'data_points': cached_ohlc['data_points_count']
+                    })
+            
+            # Step 2: Try to get data from centralized storage
+            if not force_refresh:
+                centralized_data = CentralizedDataFetchingService.get_centralized_ohlc_data(
+                    investment.symbol, investment.asset_type, timeframe
+                )
+                
+                if centralized_data and centralized_data.get('is_cache_valid'):
+                    logger.info(f"Returning centralized OHLC data for {investment.symbol} ({timeframe})")
+                    return Response({
+                        'success': True,
+                        'data': centralized_data['data'],
+                        'current_price': centralized_data['current_price'],
+                        'daily_change': centralized_data['daily_change'],
+                        'daily_change_percent': centralized_data['daily_change_percent'],
+                        'last_updated': centralized_data['last_updated'],
+                        'source': f"centralized_{centralized_data['source']}",
+                        'data_points': centralized_data['data_points']
+                    })
+            
+            # Step 3: If no valid cached data, trigger refresh and try again
+            logger.info(f"No valid cached data for {investment.symbol}, triggering refresh")
+            
+            # Trigger immediate refresh for this symbol
+            ohlc_result = CentralizedDataFetchingService.fetch_ohlc_data_for_symbol(
+                investment.symbol, investment.asset_type, timeframe
+            )
+            
+            if ohlc_result:
+                # Store the fresh data
+                CentralizedDataFetchingService.store_ohlc_data(
+                    investment.symbol, investment.asset_type, ohlc_result, timeframe
+                )
+                
+                # Update the investment record with fresh data
+                investment.ohlc_data = ohlc_result['data']
+                investment.ohlc_last_updated = timezone.now()
+                if ohlc_result['current_price']:
+                    investment.current_price = Decimal(str(ohlc_result['current_price']))
+                investment.save(update_fields=['ohlc_data', 'ohlc_last_updated', 'current_price'])
+                
+                daily_change, daily_change_percent = ohlc_result.get('daily_change', (0.0, 0.0))
+                
+                return Response({
+                    'success': True,
+                    'data': ohlc_result['data'],
+                    'current_price': ohlc_result['current_price'],
+                    'daily_change': daily_change,
+                    'daily_change_percent': daily_change_percent,
+                    'last_updated': timezone.now().isoformat(),
+                    'source': f"fresh_{ohlc_result['source']}",
+                    'data_points': len(ohlc_result['data']) if ohlc_result['data'] else 0
+                })
+            
+            # Step 4: Fallback to legacy individual fetch if centralized fails
+            logger.warning(f"Centralized data fetch failed for {investment.symbol}, using legacy fallback")
+            
+            # Legacy fallback - fetch directly using BharatSM
+            days = int(request.query_params.get('days', 30))
+            ohlc_data = get_bharatsm_ohlc_data(investment.symbol, timeframe, days)
+            
+            if ohlc_data:
+                # Store in investment model for backward compatibility
+                investment.ohlc_data = ohlc_data
+                investment.ohlc_last_updated = timezone.now()
+                investment.save(update_fields=['ohlc_data', 'ohlc_last_updated'])
+                
+                return Response({
+                    'success': True,
+                    'data': ohlc_data,
+                    'last_updated': investment.ohlc_last_updated.isoformat(),
+                    'source': 'legacy_bharatsm_fallback'
+                })
+            else:
+                return Response(
+                    {'error': f'No OHLC data available for {investment.symbol}'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+                
+        except Exception as e:
+            logger.error(f"Error fetching OHLC data for {investment.symbol}: {e}")
+            return Response(
+                {'error': 'Failed to fetch OHLC data'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
     @action(detail=True, methods=['get'])
     def chart_data(self, request, pk=None):
@@ -341,6 +474,372 @@ class InvestmentViewSet(viewsets.ModelViewSet):
             logger.error(f"Error generating AI insights: {e}")
             return Response(
                 {'error': 'Failed to generate AI insights'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @action(detail=False, methods=['get'])
+    @handle_api_errors
+    def get_ohlc_data(self, request):
+        """Get OHLC data for any symbol from centralized storage (daily timeframe only)"""
+        symbol = request.query_params.get('symbol')
+        timeframe = '1Day'  # Fixed to daily timeframe only
+        asset_type = request.query_params.get('asset_type', 'stock')
+        force_refresh = request.query_params.get('force_refresh', 'false').lower() == 'true'
+        days = int(request.query_params.get('days', 30))  # Support for monthly data (30 days)
+        
+        if not symbol:
+            return Response(
+                {'error': 'Symbol parameter is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate asset type
+        AssetValidator.validate_asset_type(asset_type)
+        
+        try:
+            # Register this symbol in centralized system (for usage tracking)
+            from .centralized_data_service import CentralizedDataFetchingService
+            CentralizedDataFetchingService.register_symbol(
+                symbol=symbol,
+                asset_type=asset_type,
+                name='',  # Will be filled later if available
+                exchange='',
+                currency='INR'
+            )
+            
+            # Step 1: Try to get data from centralized storage
+            if not force_refresh:
+                centralized_data = CentralizedDataFetchingService.get_centralized_ohlc_data(
+                    symbol, asset_type, timeframe
+                )
+                
+                if centralized_data and centralized_data.get('is_cache_valid'):
+                    # Check if cached data has enough historical points for the requested days
+                    cached_data = centralized_data['data']
+                    if isinstance(cached_data, list) and len(cached_data) >= min(days, 5):  # At least 5 points or requested days
+                        logger.info(f"Returning centralized OHLC data for {symbol} ({timeframe}) - {len(cached_data)} points")
+                        return Response({
+                            'success': True,
+                            'data': cached_data[-days:] if len(cached_data) > days else cached_data,  # Return last 'days' points
+                            'current_price': centralized_data['current_price'],
+                            'daily_change': centralized_data['daily_change'],
+                            'daily_change_percent': centralized_data['daily_change_percent'],
+                            'last_updated': centralized_data['last_updated'],
+                            'source': f"centralized_{centralized_data['source']}",
+                            'data_points': min(len(cached_data), days),
+                            'timeframe': timeframe,
+                            'requested_days': days
+                        })
+            
+            # Step 2: Check if user has existing investment with cached data (backward compatibility)
+            user_investment = None
+            if request.user.is_authenticated:
+                try:
+                    user_investment = Investment.objects.filter(
+                        user=request.user,
+                        symbol__iexact=symbol,
+                        asset_type__in=['stock', 'etf', 'bond', 'crypto', 'mutual_fund']
+                    ).first()
+                    
+                    # If user has investment data and it's recent, use it as fallback
+                    if (user_investment and user_investment.ohlc_data and 
+                        user_investment.ohlc_last_updated and not force_refresh):
+                        
+                        hours_since_update = (timezone.now() - user_investment.ohlc_last_updated).total_seconds() / 3600
+                        
+                        # Use cached data if less than 24 hours old (daily timeframe)
+                        if hours_since_update < 24.0:
+                            logger.info(f"Using user investment OHLC cache for {symbol}")
+                            return Response({
+                                'success': True,
+                                'data': user_investment.ohlc_data,
+                                'last_updated': user_investment.ohlc_last_updated.isoformat(),
+                                'source': 'user_investment_cache'
+                            })
+                except Investment.DoesNotExist:
+                    pass
+            
+            # Step 3: No valid cached data, trigger fresh fetch
+            logger.info(f"No valid cached data for {symbol}, triggering fresh fetch for {days} days")
+            
+            # Trigger immediate refresh for this symbol with requested days
+            ohlc_result = CentralizedDataFetchingService.fetch_ohlc_data_for_symbol(
+                symbol, asset_type, timeframe, days
+            )
+            
+            if ohlc_result:
+                # Store the fresh data in centralized storage
+                CentralizedDataFetchingService.store_ohlc_data(
+                    symbol, asset_type, ohlc_result, timeframe
+                )
+                
+                # Also update user investment if exists
+                if user_investment:
+                    user_investment.ohlc_data = ohlc_result['data']
+                    user_investment.ohlc_last_updated = timezone.now()
+                    if ohlc_result['current_price']:
+                        user_investment.current_price = Decimal(str(ohlc_result['current_price']))
+                    user_investment.save(update_fields=['ohlc_data', 'ohlc_last_updated', 'current_price'])
+                    logger.info(f"Updated OHLC data in user investment {user_investment.id}")
+                
+                daily_change, daily_change_percent = ohlc_result.get('daily_change', (0.0, 0.0))
+                
+                return Response({
+                    'success': True,
+                    'data': ohlc_result['data'][-days:] if len(ohlc_result['data']) > days else ohlc_result['data'],
+                    'current_price': ohlc_result['current_price'],
+                    'daily_change': daily_change,
+                    'daily_change_percent': daily_change_percent,
+                    'timestamp': timezone.now().isoformat(),
+                    'source': f"fresh_{ohlc_result['source']}",
+                    'data_points': min(len(ohlc_result['data']), days) if ohlc_result['data'] else 0,
+                    'timeframe': timeframe,
+                    'requested_days': days
+                })
+            
+            # Step 4: Fallback to legacy individual API call
+            logger.warning(f"Centralized fetch failed for {symbol}, using legacy BharatSM fallback")
+            
+            ohlc_data = get_bharatsm_ohlc_data(symbol, timeframe, days)
+            
+            if ohlc_data:
+                # Store in user investment if exists (backward compatibility)
+                if user_investment:
+                    user_investment.ohlc_data = ohlc_data
+                    user_investment.ohlc_last_updated = timezone.now()
+                    user_investment.save(update_fields=['ohlc_data', 'ohlc_last_updated'])
+                
+                return Response({
+                    'success': True,
+                    'data': ohlc_data[-days:] if len(ohlc_data) > days else ohlc_data,
+                    'timestamp': timezone.now().isoformat(),
+                    'source': 'legacy_bharatsm_fallback',
+                    'data_points': min(len(ohlc_data), days) if ohlc_data else 0,
+                    'timeframe': timeframe,
+                    'requested_days': days
+                })
+            else:
+                return Response(
+                    {'error': f'No OHLC data available for {symbol}'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+                
+        except Exception as e:
+            logger.error(f"Error fetching OHLC data for {symbol}: {e}")
+            return Response(
+                {'error': 'Failed to fetch OHLC data'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @action(detail=False, methods=['get'])
+    @handle_api_errors
+    def enhanced_data(self, request):
+        """Get enhanced asset data from centralized storage for frontend cards"""
+        symbol = request.query_params.get('symbol')
+        asset_type = request.query_params.get('asset_type', 'stock')
+        force_refresh = request.query_params.get('force_refresh', 'false').lower() == 'true'
+        
+        if not symbol:
+            return Response(
+                {'error': 'Symbol parameter is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate asset type
+        AssetValidator.validate_asset_type(asset_type)
+        
+        try:
+            # Register this symbol in centralized system (for usage tracking)
+            from .centralized_data_service import CentralizedDataFetchingService
+            CentralizedDataFetchingService.register_symbol(
+                symbol=symbol,
+                asset_type=asset_type,
+                name='',
+                exchange='',
+                currency='INR'
+            )
+            
+            # Step 1: Try to get data from centralized storage
+            if not force_refresh:
+                centralized_market_data = CentralizedDataFetchingService.get_centralized_market_data(
+                    symbol, asset_type
+                )
+                
+                if centralized_market_data and centralized_market_data.get('is_cache_valid'):
+                    logger.info(f"Returning centralized market data for {symbol}")
+                    
+                    # Format for frontend consumption
+                    response_data = {
+                        'symbol': symbol,
+                        'name': centralized_market_data.get('name', symbol),
+                        'sector': centralized_market_data.get('sector'),
+                        'industry': centralized_market_data.get('industry'),
+                        'volume': centralized_market_data.get('volume'),
+                        'market_cap': centralized_market_data.get('market_cap'),
+                        'pe_ratio': centralized_market_data.get('pe_ratio'),
+                        'growth_rate': centralized_market_data.get('growth_rate'),
+                        'fifty_two_week_high': centralized_market_data.get('fifty_two_week_high'),
+                        'fifty_two_week_low': centralized_market_data.get('fifty_two_week_low'),
+                        'beta': centralized_market_data.get('beta'),
+                        'exchange': 'NSE',  # Default for Indian stocks
+                        'currency': 'INR',  # Default for Indian stocks
+                        'last_updated': centralized_market_data.get('last_updated'),
+                        'source': f"centralized_{centralized_market_data.get('source')}",
+                        'completeness_score': centralized_market_data.get('completeness_score', 0)
+                    }
+                    
+                    # Remove None values
+                    response_data = {k: v for k, v in response_data.items() if v is not None}
+                    
+                    return Response(response_data)
+            
+            # Step 2: Check user investment for cached data (backward compatibility)
+            user_investment = None
+            if request.user.is_authenticated:
+                try:
+                    user_investment = Investment.objects.filter(
+                        user=request.user,
+                        symbol__iexact=symbol,
+                        asset_type__in=['stock', 'etf', 'bond', 'crypto', 'mutual_fund']
+                    ).first()
+                    
+                    # If user has enriched investment data and it's recent, use it as fallback
+                    if (user_investment and user_investment.data_enriched and 
+                        user_investment.enhanced_data_last_updated and not force_refresh):
+                        
+                        hours_since_update = (timezone.now() - user_investment.enhanced_data_last_updated).total_seconds() / 3600
+                        
+                        # Use cached enhanced data if less than 24 hours old
+                        if hours_since_update < 24.0:
+                            logger.info(f"Using user investment market data cache for {symbol}")
+                            
+                            response_data = {
+                                'symbol': symbol,
+                                'name': user_investment.name or symbol,
+                                'sector': user_investment.sector,
+                                'volume': user_investment.volume,
+                                'market_cap': float(user_investment.market_cap) if user_investment.market_cap else None,
+                                'pe_ratio': float(user_investment.pe_ratio) if user_investment.pe_ratio else None,
+                                'growth_rate': float(user_investment.growth_rate) if user_investment.growth_rate is not None else None,
+                                'current_price': float(user_investment.current_price) if user_investment.current_price else None,
+                                'exchange': user_investment.exchange or 'NSE',
+                                'currency': user_investment.currency or 'INR',
+                                'last_updated': user_investment.enhanced_data_last_updated.isoformat(),
+                                'source': 'user_investment_cache'
+                            }
+                            
+                            # Remove None values
+                            response_data = {k: v for k, v in response_data.items() if v is not None}
+                            
+                            return Response(response_data)
+                            
+                except Investment.DoesNotExist:
+                    pass
+            
+            # Step 3: No valid cached data, trigger fresh fetch
+            logger.info(f"No valid cached market data for {symbol}, triggering fresh fetch")
+            
+            # Trigger immediate refresh for this symbol
+            market_data = CentralizedDataFetchingService.fetch_market_data_for_symbol(symbol, asset_type)
+            
+            if market_data:
+                # Store the fresh data in centralized storage
+                CentralizedDataFetchingService.store_market_data(symbol, asset_type, market_data)
+                
+                # Also update user investment if exists
+                if user_investment:
+                    # Update the investment with fresh data
+                    if market_data.get('pe_ratio'):
+                        user_investment.pe_ratio = Decimal(str(market_data['pe_ratio']))
+                    if market_data.get('market_cap'):
+                        user_investment.market_cap = Decimal(str(market_data['market_cap']))
+                    if market_data.get('volume'):
+                        user_investment.volume = market_data['volume']
+                    if market_data.get('growth_rate'):
+                        user_investment.growth_rate = Decimal(str(market_data['growth_rate']))
+                    if market_data.get('sector'):
+                        user_investment.sector = market_data['sector']
+                    if market_data.get('current_price'):
+                        user_investment.current_price = Decimal(str(market_data['current_price']))
+                    if market_data.get('exchange'):
+                        user_investment.exchange = market_data['exchange']
+                    
+                    user_investment.data_enriched = True
+                    user_investment.enrichment_attempted = True
+                    user_investment.enrichment_error = None
+                    user_investment.enhanced_data_last_updated = timezone.now()
+                    
+                    user_investment.save(update_fields=[
+                        'pe_ratio', 'market_cap', 'volume', 'growth_rate', 'sector', 
+                        'current_price', 'exchange', 'data_enriched', 'enrichment_attempted', 
+                        'enrichment_error', 'enhanced_data_last_updated'
+                    ])
+                    logger.info(f"Updated enhanced data in user investment {user_investment.id}")
+                
+                # Format the response for frontend consumption
+                response_data = {
+                    'symbol': symbol,
+                    'name': market_data.get('company_name', market_data.get('name', symbol)),
+                    'sector': market_data.get('sector'),
+                    'industry': market_data.get('industry'),
+                    'volume': market_data.get('volume'),
+                    'market_cap': market_data.get('market_cap'),
+                    'pe_ratio': market_data.get('pe_ratio'),
+                    'growth_rate': market_data.get('growth_rate'),
+                    'fifty_two_week_high': market_data.get('fifty_two_week_high'),
+                    'fifty_two_week_low': market_data.get('fifty_two_week_low'),
+                    'beta': market_data.get('beta'),
+                    'current_price': market_data.get('current_price'),
+                    'exchange': market_data.get('exchange', 'NSE'),
+                    'currency': market_data.get('currency', 'INR'),
+                    'timestamp': timezone.now().isoformat(),
+                    'source': f"fresh_{market_data.get('source', 'unknown')}"
+                }
+                
+                # Remove None values
+                response_data = {k: v for k, v in response_data.items() if v is not None}
+                
+                return Response(response_data)
+            
+            # Step 4: Fallback to legacy API calls
+            logger.warning(f"Centralized market data fetch failed for {symbol}, using legacy fallback")
+            
+            enhanced_data = DataEnrichmentService.get_basic_market_data(symbol, asset_type)
+            
+            if not enhanced_data and final_bharatsm_service:
+                enhanced_data = final_bharatsm_service.get_frontend_display_data(symbol)
+            
+            if enhanced_data:
+                # Format the response for frontend consumption
+                response_data = {
+                    'symbol': symbol,
+                    'name': enhanced_data.get('company_name', symbol),
+                    'sector': enhanced_data.get('sector'),
+                    'volume': enhanced_data.get('volume'),
+                    'market_cap': enhanced_data.get('market_cap'),
+                    'pe_ratio': enhanced_data.get('pe_ratio'),
+                    'growth_rate': enhanced_data.get('growth_rate'),
+                    'current_price': enhanced_data.get('current_price'),
+                    'exchange': enhanced_data.get('exchange', 'NSE'),
+                    'currency': enhanced_data.get('currency', 'INR'),
+                    'timestamp': timezone.now().isoformat(),
+                    'source': 'legacy_api_fallback'
+                }
+                
+                # Remove None values
+                response_data = {k: v for k, v in response_data.items() if v is not None}
+                
+                return Response(response_data)
+            else:
+                return Response(
+                    {'error': f'No data available for symbol {symbol}'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+                
+        except Exception as e:
+            logger.error(f"Error fetching enhanced data for {symbol}: {e}")
+            return Response(
+                {'error': f'Failed to fetch data for {symbol}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     

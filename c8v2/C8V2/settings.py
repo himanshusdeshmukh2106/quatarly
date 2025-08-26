@@ -204,6 +204,10 @@ FMP_API_KEY = os.getenv('FMP_API_KEY')
 # Finnhub API settings
 FINNHUB_API_KEY = os.getenv('FINNHUB_API_KEY')
 
+# Google Sheets API settings for financial data
+GOOGLE_SHEETS_CREDENTIALS_JSON = os.getenv('GOOGLE_SHEETS_CREDENTIALS_JSON')
+GOOGLE_SHEETS_SPREADSHEET_ID = os.getenv('GOOGLE_SHEETS_SPREADSHEET_ID')
+
 # Celery Configuration
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
@@ -211,6 +215,42 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
+
+# Celery Beat Schedule for Google Sheets data synchronization
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    # Daily comprehensive data sync at 12:01 AM (24-hour cycle)
+    'daily-complete-data-sync': {
+        'task': 'investments.tasks.daily_complete_data_sync',
+        'schedule': crontab(hour=0, minute=1),  # 12:01 AM daily
+    },
+    
+    # Weekly comprehensive data sync (force refresh)
+    'weekly-full-sync': {
+        'task': 'investments.tasks.sync_google_sheets_data',
+        'schedule': crontab(hour=2, minute=0, day_of_week=1),  # Monday 2 AM
+        'kwargs': {'force_refresh': True}
+    },
+    
+    # Daily Google Sheets auto-cleanup
+    'daily-google-sheets-cleanup': {
+        'task': 'investments.tasks.google_sheets_auto_cleanup',
+        'schedule': crontab(hour=2, minute=30),  # Daily 2:30 AM
+    },
+    
+    # Weekly Google Sheets maintenance (comprehensive cleanup and archiving)
+    'weekly-google-sheets-maintenance': {
+        'task': 'investments.tasks.weekly_google_sheets_maintenance',
+        'schedule': crontab(hour=3, minute=0, day_of_week=0),  # Sunday 3 AM
+    },
+    
+    # Daily space monitoring
+    'daily-google-sheets-space-check': {
+        'task': 'investments.tasks.check_google_sheets_space',
+        'schedule': crontab(hour=12, minute=0),  # Daily noon
+    },
+}
 
 LOGGING = {
     'version': 1,

@@ -13,6 +13,21 @@ def investment_post_save(sender, instance, created, **kwargs):
     if created:
         logger.info(f"New investment created: {instance.symbol} for user {instance.user.username}")
         
+        # Register symbol in centralized system for usage tracking and data sharing
+        if instance.is_tradeable and instance.symbol:
+            try:
+                from .centralized_data_service import CentralizedDataFetchingService
+                CentralizedDataFetchingService.register_symbol(
+                    symbol=instance.symbol,
+                    asset_type=instance.asset_type,
+                    name=instance.name or '',
+                    exchange=instance.exchange or '',
+                    currency=instance.currency or 'INR'
+                )
+                logger.info(f"Registered symbol {instance.symbol} in centralized system")
+            except Exception as e:
+                logger.error(f"Error registering symbol {instance.symbol} in centralized system: {e}")
+        
         # Update chart data for new investment
         try:
             InvestmentService.update_chart_data(instance)

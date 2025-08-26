@@ -76,13 +76,29 @@ export const assetFormatters = {
 
     formatMarketCap: (asset: Asset): string => {
         if (isTradableAsset(asset) && asset.marketCap) {
-            return `${(asset.marketCap / 1000000).toFixed(1)}M`;
+            // Convert from raw value to crores and apply Indian formatting
+            const marketCapCr = asset.marketCap / 10000000; // Convert to crores (1 crore = 10 million)
+            
+            if (marketCapCr >= 100000) {
+                return `₹${Math.round(marketCapCr / 100000)}L Cr`; // Lakh crores
+            } else if (marketCapCr >= 1000) {
+                return `₹${Math.round(marketCapCr / 1000)}K Cr`; // Thousand crores
+            } else {
+                return `₹${Math.round(marketCapCr)} Cr`;
+            }
         }
         const baseCap = asset.totalValue * (isPhysicalAsset(asset) ? 50 : 100);
-        if (baseCap > 1000000000) {
-            return `${(baseCap / 1000000000).toFixed(1)}B`;
+        // Convert generated value to crores and format
+        const baseCapCr = baseCap / 10000000; // Convert to crores
+        
+        if (baseCapCr >= 100000) {
+            return `₹${Math.round(baseCapCr / 100000)}L Cr`; // Lakh crores
+        } else if (baseCapCr >= 1000) {
+            return `₹${Math.round(baseCapCr / 1000)}K Cr`; // Thousand crores
+        } else if (baseCapCr >= 1) {
+            return `₹${Math.round(baseCapCr)} Cr`;
         }
-        return `${(baseCap / 1000000).toFixed(1)}M`;
+        return `₹${Math.round(baseCap / 100000)}L`; // Display in lakhs for very small values
     },
 
     formatPERatio: (asset: Asset): string => {

@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import {
 import Svg, { Line } from 'react-native-svg';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { ThemeContext } from '../../context/ThemeContext';
+import OHLCLineChart from '../../components/OHLCLineChart';
+import { fetchMonthlyOHLCData, fetchEnhancedMarketData } from '../../services/api';
 
 interface AssetDetailScreenProps {
   route?: {
@@ -25,6 +27,60 @@ interface AssetDetailScreenProps {
 export const AssetDetailScreen: React.FC<AssetDetailScreenProps> = ({ route, navigation }) => {
   const { theme } = useContext(ThemeContext);
   const [searchQuery, setSearchQuery] = useState('');
+  const [ohlcData, setOhlcData] = useState<any>(null);
+  const [ohlcLoading, setOhlcLoading] = useState(false);
+  const [ohlcError, setOhlcError] = useState<string | null>(null);
+  const [selectedSymbol, setSelectedSymbol] = useState<string>('');
+  const [marketData, setMarketData] = useState<any>(null);
+  const [marketDataLoading, setMarketDataLoading] = useState(false);
+
+  // Function to fetch OHLC data and enhanced market data for a symbol
+  const fetchSymbolOHLCData = async (symbol: string) => {
+    if (!symbol.trim()) return;
+    
+    setOhlcLoading(true);
+    setMarketDataLoading(true);
+    setOhlcError(null);
+    setSelectedSymbol(symbol.toUpperCase());
+    
+    try {
+      // Fetch both OHLC data and enhanced market data in parallel
+      const [ohlcResponse, marketResponse] = await Promise.allSettled([
+        fetchMonthlyOHLCData(symbol),
+        fetchEnhancedMarketData(symbol, 'stock')
+      ]);
+
+      // Handle OHLC data
+      if (ohlcResponse.status === 'fulfilled' && ohlcResponse.value.success && ohlcResponse.value.data) {
+        setOhlcData(ohlcResponse.value.data);
+      } else {
+        setOhlcError(`No chart data available for ${symbol}`);
+        setOhlcData(null);
+      }
+
+      // Handle enhanced market data
+      if (marketResponse.status === 'fulfilled' && marketResponse.value) {
+        setMarketData(marketResponse.value);
+      } else {
+        setMarketData(null);
+      }
+    } catch (error: any) {
+      console.error('Error fetching data:', error);
+      setOhlcError(error.message || 'Failed to fetch data');
+      setOhlcData(null);
+      setMarketData(null);
+    } finally {
+      setOhlcLoading(false);
+      setMarketDataLoading(false);
+    }
+  };
+
+  // Handle search submit
+  const handleSearchSubmit = () => {
+    if (searchQuery.trim()) {
+      fetchSymbolOHLCData(searchQuery.trim());
+    }
+  };
 
 
 
@@ -163,11 +219,17 @@ export const AssetDetailScreen: React.FC<AssetDetailScreenProps> = ({ route, nav
         <Icon name="search" size={20} color="#6b7280" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Enter Symbol"
+          placeholder="Enter Symbol (e.g., TCS, RELIANCE)"
           placeholderTextColor="#6b7280"
           value={searchQuery}
           onChangeText={setSearchQuery}
+          onSubmitEditing={handleSearchSubmit}
+          returnKeyType="search"
+          autoCapitalize="characters"
         />
+        <TouchableOpacity onPress={handleSearchSubmit} style={styles.searchButton}>
+          <Icon name="arrow-forward" size={20} color="#00d4aa" />
+        </TouchableOpacity>
       </View>
 
       {/* Standouts Section */}
@@ -180,7 +242,92 @@ export const AssetDetailScreen: React.FC<AssetDetailScreenProps> = ({ route, nav
         style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
       >
-        {/* No mock assets - screen ready for real data integration */}
+        {/* OHLC Chart Section */}
+        {selectedSymbol && (
+          <View style={styles.chartSection}>
+            <OHLCLineChart
+              data={ohlcData?.data || []}
+              symbol={selectedSymbol}
+              timeframe={ohlcData?.timeframe || '1Day'}
+              loading={ohlcLoading}
+              error={ohlcError}
+              showVolume={true}
+            />
+          </View>
+        )}
+
+        {/* Enhanced Market Data Section */}
+        {selectedSymbol && marketData && (
+          <View style={styles.marketDataSection}>
+            <Text style={styles.marketDataTitle}>Market Information</Text>
+            <View style={styles.marketDataGrid}>
+              <View style={styles.marketDataRow}>
+                <View style={styles.marketDataItem}>
+                  <Text style={styles.marketDataLabel}>Company</Text>
+                  <Text style={styles.marketDataValue}>{marketData.name || selectedSymbol}</Text>
+                </View>
+                <View style={styles.marketDataItem}>
+                  <Text style={styles.marketDataLabel}>Sector</Text>
+                  <Text style={styles.marketDataValue}>{marketData.sector || 'N/A'}</Text>
+                </View>
+              </View>
+              <View style={styles.marketDataRow}>
+                <View style={styles.marketDataItem}>
+                  <Text style={styles.marketDataLabel}>Current Price</Text>
+                  <Text style={styles.marketDataValue}>
+                    ₹{marketData.current_price ? marketData.current_price.toFixed(2) : 'N/A'}
+                  </Text>
+                </View>
+                <View style={styles.marketDataItem}>
+                  <Text style={styles.marketDataLabel}>Volume</Text>
+                  <Text style={styles.marketDataValue}>{marketData.volume || 'N/A'}</Text>
+                </View>
+              </View>
+              <View style={styles.marketDataRow}>
+                <View style={styles.marketDataItem}>
+                  <Text style={styles.marketDataLabel}>Market Cap</Text>
+                  <Text style={styles.marketDataValue}>
+                    {marketData.market_cap ? 
+                      (marketData.market_cap >= 100000 ? 
+                        `₹${Math.round(marketData.market_cap / 100000)}L Cr` :
+                        marketData.market_cap >= 1000 ? 
+                        `₹${Math.round(marketData.market_cap / 1000)}K Cr` :
+                        `₹${Math.round(marketData.market_cap)} Cr`
+                      ) : 'N/A'
+                    }
+                  </Text>
+                </View>
+                <View style={styles.marketDataItem}>
+                  <Text style={styles.marketDataLabel}>P/E Ratio</Text>
+                  <Text style={styles.marketDataValue}>
+                    {marketData.pe_ratio ? marketData.pe_ratio.toFixed(2) : 'N/A'}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.marketDataRow}>
+                <View style={styles.marketDataItem}>
+                  <Text style={styles.marketDataLabel}>Growth Rate</Text>
+                  <Text style={styles.marketDataValue}>
+                    {marketData.growth_rate ? `${marketData.growth_rate.toFixed(1)}%` : 'N/A'}
+                  </Text>
+                </View>
+                <View style={styles.marketDataItem}>
+                  <Text style={styles.marketDataLabel}>Exchange</Text>
+                  <Text style={styles.marketDataValue}>{marketData.exchange || 'NSE'}</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Loading state for market data */}
+        {selectedSymbol && marketDataLoading && (
+          <View style={styles.loadingSection}>
+            <Text style={styles.loadingText}>Loading market data...</Text>
+          </View>
+        )}
+        
+        {/* Placeholder for other asset cards */}
       </ScrollView>
 
       {/* Bottom Input */}
@@ -259,6 +406,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '400',
   },
+  searchButton: {
+    marginLeft: 8,
+    padding: 4,
+  },
   standoutsContainer: {
     paddingHorizontal: 20,
     marginBottom: 20,
@@ -270,6 +421,57 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flex: 1,
+  },
+  chartSection: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+  },
+  marketDataSection: {
+    backgroundColor: '#1a1a1a',
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 12,
+    padding: 16,
+  },
+  marketDataTitle: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 16,
+  },
+  marketDataGrid: {
+    gap: 12,
+  },
+  marketDataRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  marketDataItem: {
+    flex: 1,
+    marginHorizontal: 4,
+  },
+  marketDataLabel: {
+    color: '#6b7280',
+    fontSize: 12,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  marketDataValue: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  loadingSection: {
+    backgroundColor: '#1a1a1a',
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#6b7280',
+    fontSize: 14,
   },
   assetCard: {
     backgroundColor: '#1a1a1a',
@@ -332,11 +534,6 @@ const styles = StyleSheet.create({
   chartStatsContainer: {
     flexDirection: 'row',
     marginBottom: 20,
-  },
-  chartSection: {
-    flex: 1,
-    flexDirection: 'row',
-    marginRight: 20,
   },
   yAxisContainer: {
     width: 40,

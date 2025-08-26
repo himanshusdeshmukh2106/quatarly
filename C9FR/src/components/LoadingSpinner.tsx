@@ -1,6 +1,7 @@
 import React, { useContext } from 'react';
 import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
 import { ThemeContext } from '../context/ThemeContext';
+import { getBodyFont } from '../config/fonts';
 
 interface LoadingSpinnerProps {
   message?: string;
@@ -38,6 +39,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   message: {
+    fontFamily: getBodyFont('regular'), // IBM Plex Sans Regular for loading messages
     marginTop: 16,
     fontSize: 16,
     textAlign: 'center',

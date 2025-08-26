@@ -1,0 +1,20 @@
+# Google Sheets API Dependencies
+# Add these to your main requirements.txt or install them separately
+
+# Google API client libraries
+google-auth==2.23.4
+google-auth-oauthlib==1.2.0  
+google-auth-httplib2==0.2.0
+google-api-python-client==2.108.0
+
+# Additional dependencies for Google Sheets functionality
+google-cloud-core==2.3.3
+googleapis-common-protos==1.61.0
+
+# For JSON credential parsing
+cachetools==5.3.2
+pyasn1==0.5.0
+pyasn1-modules==0.3.0
+rsa==4.9
+six==1.16.0
+uritemplate==4.1.1

@@ -617,6 +617,49 @@ export const fetchUserResponses = async (token?: string) => {
 // ===== Investments API =====
 
 /**
+ * Fetches enhanced asset data for asset cards (market cap, P/E ratio, etc.)
+ */
+export const fetchEnhancedAssetData = async (symbol: string, assetType: string = 'stock', token?: string) => {
+  try {
+    const headers: any = { 'Content-Type': 'application/json' };
+    if (token) {
+      headers.Authorization = `Token ${token}`;
+    } else {
+      const hasHeader = Boolean(apiClient.defaults.headers.common.Authorization);
+      if (!hasHeader) {
+        const stored = await AsyncStorage.getItem('authToken');
+        if (stored) setAuthToken(stored);
+      }
+    }
+
+    const response = await apiClient.get(`/investments/enhanced_data/?symbol=${symbol}&asset_type=${assetType}`, { headers });
+    
+    // Return the enhanced data with proper formatting
+    return {
+      symbol: response.data.symbol,
+      name: response.data.name,
+      sector: response.data.sector,
+      volume: response.data.volume,
+      marketCap: response.data.market_cap, // In crores
+      peRatio: response.data.pe_ratio,
+      growthRate: response.data.growth_rate,
+      currentPrice: response.data.current_price,
+      exchange: response.data.exchange,
+      currency: response.data.currency,
+    };
+  } catch (error: any) {
+    console.error(`Error fetching enhanced data for ${symbol}:`, error);
+    if (error.response?.status === 401) {
+      throw new Error('Authentication required. Please log in again.');
+    }
+    if (error.response?.status === 404) {
+      throw new Error(`No data available for symbol ${symbol}`);
+    }
+    throw error;
+  }
+};
+
+/**
  * Fetches all investments for the authenticated user
  */
 export const fetchInvestments = async (token?: string) => {
@@ -1135,6 +1178,114 @@ export const deleteAsset = async (assetId: string, token?: string) => {
     }
     throw error;
   }
+};
+
+/**
+ * Fetches enhanced market data for a symbol including PE ratio, market cap, volume etc.
+ */
+export const fetchEnhancedMarketData = async (
+  symbol: string, 
+  assetType: string = 'stock', 
+  token?: string, 
+  forceRefresh: boolean = false
+) => {
+  try {
+    if (!symbol) {
+      throw new Error('Symbol is required for enhanced market data fetch');
+    }
+
+    const headers: any = { 'Content-Type': 'application/json' };
+    if (token) {
+      headers.Authorization = `Token ${token}`;
+    } else {
+      const hasHeader = Boolean(apiClient.defaults.headers.common.Authorization);
+      if (!hasHeader) {
+        const stored = await AsyncStorage.getItem('authToken');
+        if (stored) setAuthToken(stored);
+      }
+    }
+
+    const response = await apiClient.get('/investments/enhanced_data/', {
+      headers,
+      params: { 
+        symbol, 
+        asset_type: assetType,
+        force_refresh: forceRefresh ? 'true' : 'false'
+      }
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching enhanced market data:', error);
+    if (error.response?.status === 404) {
+      throw new Error(`Enhanced market data not found for symbol: ${symbol}`);
+    }
+    if (error.response?.status === 401) {
+      throw new Error('Authentication required. Please log in again.');
+    }
+    throw error;
+  }
+};
+
+/**
+ * Fetches OHLC data for line chart display
+ */
+export const fetchOHLCData = async (
+  symbol: string, 
+  timeframe: string = '1Day', 
+  days: number = 30, // Default to 30 days for monthly chart
+  token?: string,
+  forceRefresh: boolean = false
+) => {
+  try {
+    if (!symbol) {
+      throw new Error('Symbol is required for OHLC data fetch');
+    }
+
+    const headers: any = { 'Content-Type': 'application/json' };
+    if (token) {
+      headers.Authorization = `Token ${token}`;
+    } else {
+      const hasHeader = Boolean(apiClient.defaults.headers.common.Authorization);
+      if (!hasHeader) {
+        const stored = await AsyncStorage.getItem('authToken');
+        if (stored) setAuthToken(stored);
+      }
+    }
+
+    const response = await apiClient.get('/investments/get_ohlc_data/', {
+      headers,
+      params: { 
+        symbol, 
+        timeframe, 
+        days,
+        force_refresh: forceRefresh ? 'true' : 'false'
+      }
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching OHLC data:', error);
+    if (error.response?.status === 404) {
+      throw new Error(`OHLC data not found for symbol: ${symbol}`);
+    }
+    if (error.response?.status === 401) {
+      throw new Error('Authentication required. Please log in again.');
+    }
+    throw error;
+  }
+};
+
+/**
+ * Fetches monthly OHLC data (30 days) for line chart display
+ * This is a convenience function that wraps fetchOHLCData with monthly parameters
+ */
+export const fetchMonthlyOHLCData = async (
+  symbol: string,
+  token?: string,
+  forceRefresh: boolean = false
+) => {
+  return fetchOHLCData(symbol, '1Day', 30, token, forceRefresh);
 };
 
 /**

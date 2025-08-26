@@ -5,6 +5,9 @@ import json
 
 User = get_user_model()
 
+# Import centralized market data models
+from .market_data_models import AssetSymbol, CentralizedOHLCData, CentralizedMarketData, DataFetchLog
+
 
 class InvestmentManager(models.Manager):
     def get_by_asset_type(self, user, asset_type):
@@ -80,6 +83,14 @@ class Investment(models.Model):
     
     # Chart Data (stored as JSON)
     chart_data = models.JSONField(default=list, blank=True)
+    
+    # OHLC Data (stored as JSON) - for line chart display
+    ohlc_data = models.JSONField(default=list, blank=True, help_text="OHLC data with timestamps for line chart display")
+    ohlc_last_updated = models.DateTimeField(blank=True, null=True, help_text="Last time OHLC data was fetched")
+    
+    # Enhanced market data cache timestamp
+    enhanced_data_last_updated = models.DateTimeField(blank=True, null=True, help_text="Last time enhanced market data (PE ratio, market cap, etc.) was fetched")
+    
     last_updated = models.DateTimeField(auto_now=True)
     
     # AI Insights

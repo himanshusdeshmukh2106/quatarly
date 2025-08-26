@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useContext } from 'react';
+import React, { useMemo, useCallback, useContext, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,13 @@ import { Asset } from '../types';
 import { ThemeContext } from '../context/ThemeContext';
 import AssetDataProcessor, { AssetDisplayData } from '../services/AssetDataProcessor';
 import ChartErrorBoundary from './ChartErrorBoundary';
+import { isTradableAsset } from '../utils/assetUtils';
+import { 
+  getHeaderFont, 
+  getBodyFont, 
+  getMonoFont
+} from '../config/fonts';
+import { globalTextStyles } from '../styles/globalStyles';
 
 interface UnifiedAssetCardProps {
   asset: Asset;
@@ -27,9 +34,40 @@ export const UnifiedAssetCard: React.FC<UnifiedAssetCardProps> = ({
   style,
 }) => {
   const { theme } = useContext(ThemeContext);
+  
+  // State for enhanced asset data
+  const [enhancedDisplayData, setEnhancedDisplayData] = useState<AssetDisplayData | null>(null);
+  const [isLoadingEnhanced, setIsLoadingEnhanced] = useState(false);
+
+  // Load enhanced data for tradable assets
+  useEffect(() => {
+    const loadEnhancedData = async () => {
+      // Only load enhanced data for tradable assets with symbols
+      if (!asset || !isTradableAsset(asset) || !asset.symbol || asset.assetType === 'gold' || asset.assetType === 'silver') {
+        return; // Skip enhancement for physical assets or invalid assets
+      }
+      
+      setIsLoadingEnhanced(true);
+      try {
+        const enhanced = await AssetDataProcessor.processAssetForDisplayWithEnhancement(asset, theme);
+        setEnhancedDisplayData(enhanced);
+      } catch (error) {
+        console.warn('Failed to load enhanced data:', error);
+        // Will fall back to basic display data
+      } finally {
+        setIsLoadingEnhanced(false);
+      }
+    };
+    
+    loadEnhancedData();
+  }, [asset, theme]);
 
   // Memoize the processed display data with comprehensive error handling
   const displayData: AssetDisplayData = useMemo(() => {
+    // Use enhanced data if available, otherwise fall back to basic processing
+    if (enhancedDisplayData && !isLoadingEnhanced) {
+      return enhancedDisplayData;
+    }
     try {
       // Enhanced validation with more specific checks
       if (!asset) {
@@ -98,7 +136,7 @@ export const UnifiedAssetCard: React.FC<UnifiedAssetCardProps> = ({
         aiAnalysis: 'Asset data is currently unavailable. Please check your connection and try again.',
       };
     }
-  }, [asset, theme]);
+  }, [asset, theme, enhancedDisplayData, isLoadingEnhanced]);
 
   // Memoize event handlers to prevent unnecessary re-renders
   const handlePress = useCallback(() => {
@@ -115,10 +153,13 @@ export const UnifiedAssetCard: React.FC<UnifiedAssetCardProps> = ({
         return 'N/A';
       }
       
+      // For Indian rupees, keep it simple and clean - remove .00 from whole numbers
+      const formatted = Number(amount).toFixed(2).replace(/\.00$/, '');
+      
       if (currency === 'USD') {
-        return `$${amount.toFixed(2)}`;
+        return `$${formatted}`;
       }
-      return `₹${amount.toFixed(2)}`;
+      return `₹${formatted}`;
     } catch (error) {
       return 'N/A';
     }
@@ -376,7 +417,10 @@ export const UnifiedAssetCard: React.FC<UnifiedAssetCardProps> = ({
   );
 };
 
-// Exact Replica Styles to Match Placeholder Investment Cards
+// Updated styles using the new typography system
+// Headers: FK Grotesk (Medium/Bold weights)
+// Body text: IBM Plex Sans (Regular/Light weights) 
+// Code/Data: IBM Plex Mono for numbers, symbols, and technical content
 const styles = StyleSheet.create({
   exactReplicaCard: {
     backgroundColor: '#1f1f1f',
@@ -415,27 +459,28 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   pixelPerfectIconText: {
+    fontFamily: getMonoFont('semiBold'), // IBM Plex Mono SemiBold for symbols
     fontSize: 14,
-    fontWeight: '800',
     color: '#ffffff',
+    letterSpacing: 0.5,
   },
   pixelPerfectCompanyInfo: {
     flex: 1,
     maxWidth: 120,
   },
   pixelPerfectCompanyName: {
+    fontFamily: getHeaderFont('medium'), // FK Grotesk Medium for company names
     fontSize: 17,
-    fontWeight: '600',
     color: '#ffffff',
     marginBottom: 4,
     lineHeight: 20,
     maxWidth: 120,
   },
   pixelPerfectSymbol: {
+    fontFamily: getMonoFont('regular'), // IBM Plex Mono Regular for stock symbols
     fontSize: 13,
-    fontWeight: '500',
     color: '#9ca3af',
-    letterSpacing: 0.2,
+    letterSpacing: 0.5,
   },
   pixelPerfectRight: {
     alignItems: 'flex-end',
@@ -452,15 +497,15 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   pixelPerfectPrice: {
+    fontFamily: getMonoFont('medium'), // IBM Plex Mono Medium for prices
     fontSize: 20,
-    fontWeight: '700',
     color: '#ffffff',
     letterSpacing: -0.2,
   },
   pixelPerfectChange: {
+    fontFamily: getMonoFont('medium'), // IBM Plex Mono Medium for percentage changes
     fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: 0.1,
+    letterSpacing: 0.2,
   },
   pixelPerfectBody: {
     flexDirection: 'row',
@@ -481,10 +526,11 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   pixelPerfectYLabel: {
+    fontFamily: getMonoFont('regular'), // IBM Plex Mono Regular for Y-axis values
     color: '#6b7280',
     fontSize: 11,
-    fontWeight: '500',
     textAlign: 'right',
+    letterSpacing: 0.2,
   },
   pixelPerfectChartContainer: {
     flex: 1,
@@ -494,9 +540,9 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   pixelPerfectTime: {
+    fontFamily: getBodyFont('light'), // IBM Plex Sans Light for timestamps
     color: '#6b7280',
     fontSize: 11,
-    fontWeight: '500',
     marginTop: 10,
     textAlign: 'left',
   },
@@ -512,15 +558,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   pixelPerfectStatLabel: {
+    fontFamily: getBodyFont('light'), // IBM Plex Sans Light for stat labels
     color: '#6b7280',
     fontSize: 12,
-    fontWeight: '500',
   },
   pixelPerfectStatValue: {
+    fontFamily: getMonoFont('medium'), // IBM Plex Mono Medium for stat values
     color: '#ffffff',
     fontSize: 13,
-    fontWeight: '600',
     textAlign: 'right',
+    letterSpacing: 0.2,
   },
   pixelPerfectInsightContainer: {
     paddingTop: 12,
@@ -533,10 +580,10 @@ const styles = StyleSheet.create({
     marginHorizontal: -20,
   },
   pixelPerfectInsightText: {
+    fontFamily: getBodyFont('regular'), // IBM Plex Sans Regular for AI insights
     color: '#d1d5db',
     fontSize: 16,
     lineHeight: 22,
-    fontWeight: '400',
     letterSpacing: 0.1,
   },
 });

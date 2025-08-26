@@ -3,6 +3,7 @@ import { View, Text, TextInput, StyleSheet, Alert, ActivityIndicator, TouchableO
 import { AuthContext } from '../context/AuthContext';
 import { ThemeContext } from '../context/ThemeContext';
 import DecorativeBackground from '../components/auth/DecorativeBackground';
+import { getHeaderFont, getBodyFont } from '../config/fonts';
 
 const LoginScreen = ({ navigation }: { navigation: any }) => {
   const [username, setUsername] = useState('');
@@ -75,17 +76,19 @@ const styles = StyleSheet.create({
     padding: 30,
   },
   title: {
+    fontFamily: getHeaderFont('bold'), // FK Grotesk Bold for main title
     fontSize: 28,
-    fontWeight: 'bold',
     marginBottom: 10,
     textAlign: 'left',
   },
   subtitle: {
+    fontFamily: getBodyFont('regular'), // IBM Plex Sans Regular for subtitle
     fontSize: 16,
     marginBottom: 30,
     textAlign: 'left',
   },
   input: {
+    fontFamily: getBodyFont('regular'), // IBM Plex Sans Regular for input text
     height: 50,
     borderWidth: 1,
     borderRadius: 12,
@@ -101,13 +104,14 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   buttonText: {
+    fontFamily: getHeaderFont('medium'), // FK Grotesk Medium for button text
     color: 'white',
     fontSize: 16,
-    fontWeight: 'bold',
   },
   link: {
-      marginTop: 20,
-      textAlign: 'center',
+    fontFamily: getBodyFont('regular'), // IBM Plex Sans Regular for links
+    marginTop: 20,
+    textAlign: 'center',
   }
 });
 

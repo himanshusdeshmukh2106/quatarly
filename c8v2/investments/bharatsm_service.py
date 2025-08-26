@@ -587,8 +587,8 @@ class FinalOptimizedBharatSMService:
             return False
         
         # Check for common Indian stock patterns
-        # Most Indian stocks are 3-10 characters without dots
-        if '.' not in symbol and 3 <= len(symbol) <= 10:
+        # Most Indian stocks are 2-10 characters without dots (changed from 3-10 to include LT)
+        if '.' not in symbol and 2 <= len(symbol) <= 10:
             # Common Indian stock symbols
             indian_patterns = [
                 'TCS', 'RELIANCE', 'INFY', 'HDFCBANK', 'ICICIBANK',
@@ -625,21 +625,21 @@ class FinalOptimizedBharatSMService:
             any(crypto in symbol_upper for crypto in crypto_patterns)):
             return 'crypto'
         
-        # Enhanced US stock detection (check explicit US patterns first)
-        if self._is_us_stock_symbol(symbol):
-            return 'us_stock'
-        
-        # Indian stock detection (high confidence patterns)
+        # Indian stock detection FIRST (higher priority than US stocks)
         if self._is_indian_symbol(symbol):
             return 'indian_stock'
+        
+        # Enhanced US stock detection (after Indian check)
+        if self._is_us_stock_symbol(symbol):
+            return 'us_stock'
         
         # Default fallback logic
         # If symbol has dots (like BRK.A, BRK.B), likely US stock
         if '.' in symbol_upper and not any(symbol_upper.endswith(suffix) for suffix in ['.NS', '.BO', '.NSE', '.BSE']):
             return 'us_stock'
         
-        # If symbol is very short (1-2 chars), likely US stock
-        if len(symbol) <= 2:
+        # If symbol is very short (single character only), likely US stock  
+        if len(symbol) == 1:
             return 'us_stock'
         
         # If symbol is very long (>10 chars), likely US stock
@@ -652,8 +652,9 @@ class FinalOptimizedBharatSMService:
             if symbol_upper in common_etfs:
                 return 'us_stock'
         
-        # Default to US stock for ambiguous cases
-        return 'us_stock'
+        # Default to indian_stock for ambiguous cases (changed from us_stock)
+        # This better serves the Indian user base
+        return 'indian_stock'
     
     def _is_us_stock_symbol(self, symbol: str) -> bool:
         """Enhanced US stock symbol detection"""
@@ -1076,7 +1077,7 @@ class FinalOptimizedBharatSMService:
     def _extract_market_cap_final(self, ratios_df: Optional[pd.DataFrame]) -> Optional[float]:
         """
         Extract market cap using multiple methods from u.md documentation.
-        Returns actual value (not in crores).
+        Returns value in crores (Indian financial standard).
         """
         if ratios_df is None or ratios_df.empty:
             return None
@@ -1087,7 +1088,7 @@ class FinalOptimizedBharatSMService:
             
             ratio_col = ratios_df.columns[0]
             
-            # Method 1: MarketCap/Net Operating Revenue * Revenue per Share
+            # Method 1: Look for market cap related patterns
             for pattern in self.market_cap_patterns:
                 matching_rows = ratios_df[ratios_df[ratio_col].str.contains(pattern, na=False)]
                 if not matching_rows.empty:
@@ -1095,13 +1096,18 @@ class FinalOptimizedBharatSMService:
                         value_str = str(matching_rows.iloc[0, 1]).replace(',', '').strip()
                         if value_str and value_str not in ['--', 'N/A', 'nan']:
                             value = float(value_str)
+                            row_name = str(matching_rows.iloc[0, 0]).strip()
                             
-                            # If it's Enterprise Value, convert from Cr to actual
-                            if 'Enterprise Value' in matching_rows.iloc[0, 0]:
-                                return value * 10_000_000  # Convert Cr to actual
+                            logger.debug(f"Found market cap row: '{row_name}' = {value}")
                             
-                            # If it's MarketCap/Revenue ratio, need to calculate
-                            if 'MarketCap/Net Operating Revenue' in matching_rows.iloc[0, 0]:
+                            # If it's Enterprise Value, it's usually already in crores
+                            if 'Enterprise Value' in row_name:
+                                # Value is already in crores, return as-is
+                                logger.debug(f"Enterprise Value found: {value} Cr")
+                                return value
+                            
+                            # If it's MarketCap/Revenue ratio, calculate properly
+                            if 'MarketCap/Net Operating Revenue' in row_name:
                                 # Find Revenue per Share
                                 revenue_per_share_rows = ratios_df[
                                     ratios_df[ratio_col].str.contains(
@@ -1112,11 +1118,23 @@ class FinalOptimizedBharatSMService:
                                     revenue_per_share = float(
                                         str(revenue_per_share_rows.iloc[0, 1]).replace(',', '').strip()
                                     )
-                                    # Estimate market cap
-                                    estimated_market_cap = value * revenue_per_share * 1_000_000
+                                    # Calculate market cap in crores (value is ratio, revenue_per_share is in Rs)
+                                    # Estimated market cap = ratio * revenue_per_share (result in crores)
+                                    estimated_market_cap = value * revenue_per_share
+                                    logger.debug(f"Calculated market cap: {estimated_market_cap} Cr")
                                     return estimated_market_cap
                             
+                            # For direct market cap values, assume they're in appropriate units
+                            # If value is extremely large, it might be in actual rupees - convert to crores
+                            if value > 1_000_000_000_000:  # > 1 trillion, likely in rupees
+                                value_in_crores = value / 10_000_000  # Convert to crores
+                                logger.debug(f"Large market cap detected, converting: {value} -> {value_in_crores} Cr")
+                                return value_in_crores
+                            
+                            # Otherwise return as-is (assuming it's already in reasonable units)
+                            logger.debug(f"Market cap value: {value}")
                             return value
+                            
                     except (ValueError, TypeError) as e:
                         logger.debug(f"Error parsing market cap value: {e}")
                         continue
@@ -1594,13 +1612,13 @@ class FinalOptimizedBharatSMService:
         else:
             validations.append("⚠️ Volume not available")
         
-        # Market cap validation
+        # Market cap validation (expecting values in crores)
         market_cap = result.get('market_cap')
         if market_cap is not None:
-            if 1_000_000 <= market_cap <= 50_000_000_000_000:
+            if 1_000 <= market_cap <= 50_000_000:  # 1,000 Cr to 50,00,000 Cr (reasonable range)
                 validations.append("✅ Market cap in reasonable range")
             else:
-                validations.append(f"⚠️ Market cap {market_cap} outside expected range")
+                validations.append(f"⚠️ Market cap {market_cap} Cr outside expected range")
         else:
             validations.append("⚠️ Market cap not available")
         
@@ -1626,6 +1644,145 @@ class FinalOptimizedBharatSMService:
         
         for validation in validations:
             logger.info(f"  {validation}")
+    
+    def get_ohlc_data(self, symbol: str, timeframe: str = '1Day', days: int = 30) -> Dict:
+        """
+        Fetch OHLC data for line chart display using BharatSM NSE charting API.
+        
+        Args:
+            symbol: Stock symbol (e.g., 'TCS', 'RELIANCE')
+            timeframe: Timeframe for OHLC data ('1Min', '5Min', '15Min', '1Day')
+            days: Number of days of historical data to fetch
+        
+        Returns:
+            Dict with OHLC data formatted for frontend line chart:
+            {
+                'symbol': str,
+                'timeframe': str,
+                'data': [
+                    {
+                        'timestamp': 'ISO timestamp',
+                        'open': float,
+                        'high': float,
+                        'low': float,
+                        'close': float,
+                        'volume': int
+                    },
+                    ...
+                ]
+            }
+        """
+        try:
+            if not symbol or not isinstance(symbol, str):
+                logger.error(f"Invalid symbol provided: {symbol}")
+                return {}
+            
+            symbol = symbol.strip().upper()
+            
+            # Check if BharatSM (NSE) is available
+            if not self.bharatsm_available or not self.nse:
+                logger.warning("BharatSM NSE service not available for OHLC data")
+                return {}
+            
+            # Calculate date range
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=days)
+            
+            logger.info(f"Fetching OHLC data for {symbol} - timeframe: {timeframe}, days: {days}")
+            
+            # Fetch OHLC data using NSE charting API
+            ohlc_df = self.nse.get_ohlc_from_charting(symbol, timeframe, start_date, end_date)
+            
+            if ohlc_df is None or ohlc_df.empty:
+                logger.warning(f"No OHLC data returned for {symbol}")
+                
+                # Fallback: Try daily OHLC data
+                try:
+                    ohlc_data = self.nse.get_ohlc_data(symbol, is_index=False)
+                    if ohlc_data is not None:
+                        # Convert single day data to chart format
+                        if isinstance(ohlc_data, dict):
+                            # Handle dict response
+                            fallback_data = {
+                                'symbol': symbol,
+                                'timeframe': 'daily',
+                                'data': [{
+                                    'timestamp': datetime.now().isoformat(),
+                                    'open': float(ohlc_data.get('open', 0)),
+                                    'high': float(ohlc_data.get('high', 0)),
+                                    'low': float(ohlc_data.get('low', 0)),
+                                    'close': float(ohlc_data.get('close', 0)),
+                                    'volume': int(ohlc_data.get('volume', 0))
+                                }]
+                            }
+                            logger.info(f"Using fallback daily OHLC data for {symbol}")
+                            return fallback_data
+                        elif hasattr(ohlc_data, 'empty') and not ohlc_data.empty:
+                            # Handle DataFrame response
+                            fallback_data = {
+                                'symbol': symbol,
+                                'timeframe': 'daily',
+                                'data': []
+                            }
+                            for _, row in ohlc_data.iterrows():
+                                fallback_data['data'].append({
+                                    'timestamp': row.name.isoformat() if hasattr(row.name, 'isoformat') else str(row.name),
+                                    'open': float(row.get('open', 0)),
+                                    'high': float(row.get('high', 0)),
+                                    'low': float(row.get('low', 0)),
+                                    'close': float(row.get('close', 0)),
+                                    'volume': int(row.get('volume', 0))
+                                })
+                            logger.info(f"Using fallback DataFrame OHLC data for {symbol} with {len(fallback_data['data'])} points")
+                            return fallback_data
+                except Exception as fallback_error:
+                    logger.error(f"Fallback OHLC data fetch failed for {symbol}: {fallback_error}")
+                
+                return {}
+            
+            # Process the charting data
+            chart_data = {
+                'symbol': symbol,
+                'timeframe': timeframe,
+                'data': []
+            }
+            
+            # Convert DataFrame to chart format
+            for _, row in ohlc_df.iterrows():
+                try:
+                    # Handle timestamp
+                    timestamp = row.get('timestamp', datetime.now())
+                    if hasattr(timestamp, 'isoformat'):
+                        timestamp_str = timestamp.isoformat()
+                    else:
+                        timestamp_str = str(timestamp)
+                    
+                    data_point = {
+                        'timestamp': timestamp_str,
+                        'open': float(row.get('open', 0)),
+                        'high': float(row.get('high', 0)),
+                        'low': float(row.get('low', 0)),
+                        'close': float(row.get('close', 0)),
+                        'volume': int(row.get('volume', 0))
+                    }
+                    
+                    # Only add valid data points
+                    if data_point['close'] > 0:
+                        chart_data['data'].append(data_point)
+                        
+                except (ValueError, TypeError) as e:
+                    logger.debug(f"Skipping invalid OHLC data point: {e}")
+                    continue
+            
+            # Sort by timestamp
+            chart_data['data'].sort(key=lambda x: x['timestamp'])
+            
+            logger.info(f"Successfully fetched {len(chart_data['data'])} OHLC data points for {symbol}")
+            return chart_data
+            
+        except Exception as e:
+            logger.error(f"Error fetching OHLC data for {symbol}: {e}")
+            return {}
     
     def get_basic_stock_info(self, symbol: str) -> Dict:
         """Get basic stock information for asset creation."""
@@ -1680,4 +1837,17 @@ def get_bharatsm_basic_info(symbol: str) -> Dict:
         return final_bharatsm_service.get_basic_stock_info(symbol)
     except Exception as e:
         logger.error(f"Error in BharatSM basic info fetch: {e}")
+        return {}
+
+
+def get_bharatsm_ohlc_data(symbol: str, timeframe: str = '1Day', days: int = 30) -> Dict:
+    """Convenience function to get OHLC data for line chart display."""
+    if not final_bharatsm_service:
+        logger.warning("BharatSM service not available")
+        return {}
+    
+    try:
+        return final_bharatsm_service.get_ohlc_data(symbol, timeframe, days)
+    except Exception as e:
+        logger.error(f"Error in BharatSM OHLC data fetch: {e}")
         return {}

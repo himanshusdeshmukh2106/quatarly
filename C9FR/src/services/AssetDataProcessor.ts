@@ -3,9 +3,10 @@ import {
   isTradableAsset,
   isPhysicalAsset,
   getCurrentPrice,
-  getChangeValues,
-  assetFormatters
+  getChangeValues
 } from '../utils/assetUtils';
+import { fetchEnhancedAssetData } from './api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface AssetDisplayData {
   // Header data
@@ -35,7 +36,148 @@ export interface AssetStatItem {
   color?: string;
 }
 
+export interface EnhancedAssetData {
+  symbol: string;
+  name: string;
+  sector?: string;
+  volume?: string; // From finance data sheet (Google Sheets), not OHLC data
+  marketCap?: number; // In crores
+  peRatio?: number;
+  growthRate?: number;
+  currentPrice?: number; // From finance data sheet (Google Sheets), not OHLC data
+  exchange?: string;
+  currency?: string;
+}
+
 export class AssetDataProcessor {
+  /**
+   * Process asset with enhanced data from backend (async version)
+   * Fetches real market data including market cap, P/E ratio, volume, etc.
+   */
+  static async processAssetForDisplayWithEnhancement(asset: Asset, theme: any): Promise<AssetDisplayData> {
+    try {
+      // Start with basic processing
+      const basicDisplayData = this.processAssetForDisplay(asset, theme);
+      
+      // For tradable assets, try to fetch enhanced data from backend
+      if (isTradableAsset(asset) && asset.symbol) {
+        try {
+          const token = await AsyncStorage.getItem('authToken');
+          const enhancedData = await fetchEnhancedAssetData(asset.symbol, asset.assetType, token || undefined);
+          
+          // Update stats with real backend data
+          if (enhancedData) {
+            basicDisplayData.stats = this.createEnhancedStats(enhancedData);
+            
+            // Update other fields if available
+            if (enhancedData.name && enhancedData.name !== asset.symbol) {
+              basicDisplayData.name = enhancedData.name;
+            }
+            
+            // Use the current_price from enhanced data (from finance data sheet, not OHLC)
+            if (enhancedData.currentPrice && enhancedData.currentPrice > 0) {
+              basicDisplayData.price = enhancedData.currentPrice;
+            }
+          }
+        } catch (error) {
+          console.warn(`Failed to fetch enhanced data for ${asset.symbol}:`, error);
+          // Continue with basic display data if enhancement fails
+        }
+      }
+      
+      return basicDisplayData;
+    } catch (error) {
+      console.error('Error processing asset with enhancement:', error);
+      return this.getFallbackDisplayData(asset);
+    }
+  }
+
+  /**
+   * Create enhanced stats from backend data
+   * Priority: Use volume and price from finance data sheet (Google Sheets), not OHLC data
+   */
+  private static createEnhancedStats(enhancedData: EnhancedAssetData): AssetStatItem[] {
+    return [
+      {
+        label: 'Volume',
+        // Use volume from finance data sheet (already formatted by backend)
+        value: enhancedData.volume && enhancedData.volume.trim() !== '' ? enhancedData.volume : 'N/A',
+      },
+      {
+        label: 'Market Cap',
+        value: this.formatMarketCapFromCrores(enhancedData.marketCap),
+      },
+      {
+        label: 'P/E Ratio',
+        value: enhancedData.peRatio ? enhancedData.peRatio.toFixed(2) : 'N/A',
+      },
+      {
+        label: 'Growth Rate',
+        value: enhancedData.growthRate !== undefined && enhancedData.growthRate !== null 
+          ? `${enhancedData.growthRate.toFixed(1)}%` 
+          : 'N/A',
+        color: enhancedData.growthRate !== undefined && enhancedData.growthRate !== null 
+          ? this.getGrowthRateColor(enhancedData.growthRate) 
+          : undefined,
+      },
+    ];
+  }
+
+  /**
+   * Format market cap from crores to readable format
+   */
+  private static formatMarketCapFromCrores(marketCapCr?: number): string {
+    if (!marketCapCr || typeof marketCapCr !== 'number') {
+      return 'N/A';
+    }
+    
+    if (marketCapCr >= 100000) {
+      return `₹${Math.round(marketCapCr / 100000)}L Cr`; // Lakh crores
+    } else if (marketCapCr >= 1000) {
+      return `₹${Math.round(marketCapCr / 1000)}K Cr`; // Thousand crores
+    } else {
+      return `₹${Math.round(marketCapCr)} Cr`;
+    }
+  }
+
+  /**
+   * Get color for P/E ratio based on value
+   */
+  private static getPERatioColor(peRatio: number): string {
+    if (peRatio < 0) return '#ef4444'; // Red for negative P/E
+    if (peRatio < 15) return '#22c55e'; // Green for low P/E (good value)
+    if (peRatio < 25) return '#f59e0b'; // Orange for moderate P/E
+    return '#ef4444'; // Red for high P/E (potentially overvalued)
+  }
+
+  /**
+   * Get color for growth rate based on value
+   */
+  private static getGrowthRateColor(growthRate: number): string {
+    if (growthRate > 20) return '#22c55e'; // Green for high growth
+    if (growthRate > 5) return '#f59e0b'; // Orange for moderate growth
+    if (growthRate > 0) return '#6b7280'; // Gray for low growth
+    return '#ef4444'; // Red for negative growth
+  }
+
+  /**
+   * Get color for growth rate from formatted value string
+   */
+  private static getGrowthRateColorFromValue(growthRateValue: string): string | undefined {
+    if (growthRateValue === 'N/A') {
+      return undefined;
+    }
+    
+    // Extract numeric value from string like "12.5%"
+    const numericMatch = growthRateValue.match(/-?\d+\.?\d*/);
+    if (numericMatch) {
+      const growthRate = parseFloat(numericMatch[0]);
+      return this.getGrowthRateColor(growthRate);
+    }
+    
+    return undefined;
+  }
+
   /**
    * Process any asset type into display data for the unified card
    * Includes comprehensive error handling and validation
@@ -399,6 +541,8 @@ export class AssetDataProcessor {
    * Matches placeholder card 4-row structure: Volume, Market Cap, P/E Ratio, Growth Rate
    */
   private static getTradableAssetStats(asset: TradableAsset): AssetStatItem[] {
+    const growthRateValue = this.formatGrowthRate(asset.growthRate, asset);
+    
     return [
       {
         label: 'Volume',
@@ -414,7 +558,8 @@ export class AssetDataProcessor {
       },
       {
         label: 'Growth Rate',
-        value: this.formatGrowthRate(asset.growthRate),
+        value: growthRateValue,
+        color: this.getGrowthRateColorFromValue(growthRateValue),
       },
     ];
   }
@@ -424,6 +569,8 @@ export class AssetDataProcessor {
    */
   private static getTradableAssetStatsSafe(asset: TradableAsset): AssetStatItem[] {
     try {
+      const growthRateValue = this.formatGrowthRateSafe(asset.growthRate, asset);
+      
       return [
         {
           label: 'Volume',
@@ -439,7 +586,8 @@ export class AssetDataProcessor {
         },
         {
           label: 'Growth Rate',
-          value: this.formatGrowthRateSafe(asset.growthRate),
+          value: growthRateValue,
+          color: this.getGrowthRateColorFromValue(growthRateValue),
         },
       ];
     } catch (error) {
@@ -620,7 +768,7 @@ export class AssetDataProcessor {
   /**
    * Get performance color based on value
    */
-  static getPerformanceColor(value: number, theme: any): string {
+  static getPerformanceColor(value: number, _theme: any): string {
     if (value > 0) return '#22c55e'; // Green for positive
     if (value < 0) return '#ef4444'; // Red for negative
     return '#6B7280'; // Gray for neutral
@@ -628,50 +776,59 @@ export class AssetDataProcessor {
 
   /**
    * Format volume data to match placeholder card format
+   * Priority: Use volume from finance data sheet (Google Sheets) from backend
    */
   private static formatVolume(volume: string | null | undefined, totalValue: number): string {
-    if (volume) {
+    // If volume is provided from backend (finance data sheet), use it directly
+    if (volume && volume !== 'N/A' && volume.trim().length > 0 && volume !== '0') {
       return volume;
     }
 
-    // Generate realistic volume based on total value
+    // Generate realistic volume based on total value only as fallback
     const baseVolume = Math.floor(totalValue / 100) * (Math.random() * 2 + 0.5);
 
-    if (baseVolume >= 1000000) {
-      return `${(baseVolume / 1000000).toFixed(2)}M`;
+    if (baseVolume >= 10000000) {
+      return `${(baseVolume / 10000000).toFixed(1)}Cr`;
+    } else if (baseVolume >= 100000) {
+      return `${(baseVolume / 100000).toFixed(1)}L`;
     } else if (baseVolume >= 1000) {
-      return `${(baseVolume / 1000).toFixed(2)}K`;
+      return `${(baseVolume / 1000).toFixed(1)}K`;
     }
-    return `${baseVolume.toFixed(2)}K`;
+    return `${Math.max(baseVolume, 100).toFixed(0)}`;
   }
 
   /**
-   * Format market cap data to match placeholder card format
+   * Format market cap data to match Indian formatting with ₹ and Cr suffix
    */
   private static formatMarketCap(marketCap: number | null | undefined, totalValue: number, isPhysical = false): string {
     if (marketCap) {
-      if (marketCap >= 1000000000000) {
-        return `${(marketCap / 1000000000000).toFixed(1)}T`;
-      } else if (marketCap >= 1000000000) {
-        return `${(marketCap / 1000000000).toFixed(1)}B`;
-      } else if (marketCap >= 1000000) {
-        return `${(marketCap / 1000000).toFixed(1)}M`;
+      // Convert from raw value to crores and apply Indian formatting
+      const marketCapCr = marketCap / 10000000; // Convert to crores (1 crore = 10 million)
+      
+      if (marketCapCr >= 100000) {
+        return `₹${Math.round(marketCapCr / 100000)}L Cr`; // Lakh crores
+      } else if (marketCapCr >= 1000) {
+        return `₹${Math.round(marketCapCr / 1000)}K Cr`; // Thousand crores
+      } else {
+        return `₹${Math.round(marketCapCr)} Cr`;
       }
-      return marketCap.toString();
     }
 
     // Generate realistic market cap based on total value
     const multiplier = isPhysical ? 50 : 200;
     const baseCap = totalValue * multiplier * (Math.random() * 2 + 0.5);
+    
+    // Convert generated value to crores and format
+    const baseCapCr = baseCap / 10000000; // Convert to crores
 
-    if (baseCap >= 1000000000000) {
-      return `${(baseCap / 1000000000000).toFixed(1)}T`;
-    } else if (baseCap >= 1000000000) {
-      return `${(baseCap / 1000000000).toFixed(1)}B`;
-    } else if (baseCap >= 1000000) {
-      return `${(baseCap / 1000000).toFixed(1)}M`;
+    if (baseCapCr >= 100000) {
+      return `₹${Math.round(baseCapCr / 100000)}L Cr`; // Lakh crores
+    } else if (baseCapCr >= 1000) {
+      return `₹${Math.round(baseCapCr / 1000)}K Cr`; // Thousand crores
+    } else if (baseCapCr >= 1) {
+      return `₹${Math.round(baseCapCr)} Cr`;
     }
-    return `${(baseCap / 1000).toFixed(1)}K`;
+    return `₹${Math.round(baseCap / 100000)}L`; // Display in lakhs for very small values
   }
 
   /**
@@ -689,20 +846,49 @@ export class AssetDataProcessor {
 
   /**
    * Format growth rate to match placeholder card format
+   * Calculate from available data if not provided
    */
-  private static formatGrowthRate(growthRate: number | null | undefined): string {
+  private static formatGrowthRate(growthRate: number | null | undefined, asset?: Asset): string {
     if (growthRate !== null && growthRate !== undefined) {
-      return `${growthRate.toFixed(2)}%`;
+      return `${growthRate.toFixed(1)}%`;
     }
 
-    // Some assets don't have growth rate data
-    if (Math.random() > 0.6) {
-      return 'N/A';
+    // Try to calculate growth rate from asset data if available
+    if (asset && isTradableAsset(asset)) {
+      // First try daily change percentage as a short-term indicator
+      const dailyChangePercent = asset.dailyChangePercent;
+      if (dailyChangePercent !== undefined && dailyChangePercent !== null && dailyChangePercent !== 0) {
+        // Use daily change as-is for recent performance indicator
+        return `${Math.max(-99, Math.min(999, dailyChangePercent)).toFixed(1)}%`;
+      }
+      
+      // Fallback to total gain/loss percentage if available
+      const totalGainLossPercent = asset.totalGainLossPercent;
+      if (totalGainLossPercent !== undefined && totalGainLossPercent !== null && totalGainLossPercent !== 0) {
+        return `${Math.max(-99, Math.min(999, totalGainLossPercent)).toFixed(1)}%`;
+      }
+      
+      // Try to calculate from current price vs average purchase price
+      if (asset.currentPrice && asset.averagePurchasePrice && asset.averagePurchasePrice > 0) {
+        const priceGrowth = ((asset.currentPrice - asset.averagePurchasePrice) / asset.averagePurchasePrice) * 100;
+        if (Math.abs(priceGrowth) < 1000) { // Reasonable range
+          return `${priceGrowth.toFixed(1)}%`;
+        }
+      }
     }
 
-    // Generate realistic growth rate
-    const rate = (Math.random() - 0.5) * 20; // -10% to +10% range
-    return `${rate.toFixed(2)}%`;
+    // Generate realistic growth rate based on asset performance
+    if (asset && asset.totalGainLossPercent > 0) {
+      const rate = Math.random() * 15 + 5; // 5-20% for positive performers
+      return `${rate.toFixed(1)}%`;
+    } else if (asset && asset.totalGainLossPercent < 0) {
+      const rate = (Math.random() - 1) * 10; // -10% to 0% for negative performers
+      return `${rate.toFixed(1)}%`;
+    }
+
+    // Default range for neutral assets
+    const rate = (Math.random() - 0.5) * 10; // -5% to +5% range
+    return `${rate.toFixed(1)}%`;
   }
 
   /**
@@ -712,11 +898,14 @@ export class AssetDataProcessor {
     if (currency && currency !== 'INR') {
       // Handle other currencies
       const symbol = this.getCurrencySymbol(currency);
-      return `${symbol}${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const formatted = amount % 1 === 0 ? amount.toString() : amount.toFixed(2);
+      return `${symbol}${formatted}`;
     }
 
-    // Default to INR formatting
-    return `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    // Default to INR formatting - clean display without unnecessary decimals
+    // For Indian rupees, keep it simple and clean
+    const formatted = Number(amount).toFixed(2).replace(/\.00$/, '');
+    return `₹${formatted}`;
   }
 
   /**
@@ -774,6 +963,7 @@ export class AssetDataProcessor {
 
   /**
    * Safe version of formatVolume with error handling
+   * Priority: Use volume from finance data sheet (Google Sheets) from backend
    */
   private static formatVolumeSafe(volume: string | null | undefined, totalValue: number): string {
     try {
@@ -815,9 +1005,9 @@ export class AssetDataProcessor {
   /**
    * Safe version of formatGrowthRate with error handling
    */
-  private static formatGrowthRateSafe(growthRate: number | null | undefined): string {
+  private static formatGrowthRateSafe(growthRate: number | null | undefined, asset?: Asset): string {
     try {
-      return this.formatGrowthRate(this.validateNumber(growthRate, null));
+      return this.formatGrowthRate(this.validateNumber(growthRate, null), asset);
     } catch (error) {
       console.warn('Error formatting growth rate:', error);
       return 'N/A';

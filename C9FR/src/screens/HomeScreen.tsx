@@ -3,6 +3,7 @@ import { StyleSheet, useWindowDimensions, Text, View, TouchableOpacity, StatusBa
 import { TabView, SceneMap } from 'react-native-tab-view';
 import { ThemeContext } from '../context/ThemeContext';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { getHeaderFont } from '../config/fonts';
 // import { useNavigation } from '@react-navigation/native';
 // import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
@@ -139,9 +140,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     headerTitle: {
+        fontFamily: getHeaderFont('bold'), // FK Grotesk Bold for header title
         color: 'white',
         fontSize: 22,
-        fontWeight: 'bold',
     },
     tabbar: {
         flexDirection: 'row',
