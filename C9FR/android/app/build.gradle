@@ -75,6 +75,7 @@ def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
+    ndkVersion "27.0.12077973"
 
     namespace "com.c9fr"
     defaultConfig {
