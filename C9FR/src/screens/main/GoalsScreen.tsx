@@ -1,9 +1,9 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useCallback } from 'react';
 import { View, Text, ScrollView, Image, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
 import { ThemeContext } from '../../context/ThemeContext';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Goal, CreateGoalRequest } from '../../types';
-import { fetchGoals, createGoal } from '../../services/api';
+import { useGoals } from '../../hooks/useGoals';
 import { showToast } from '../../utils/toast';
 
 // Import components with proper default imports
@@ -16,14 +16,20 @@ import AIInsightsDrawer from '../../components/AIInsightsDrawer';
 const GoalsScreen: React.FC = () => {
   const { theme } = useContext(ThemeContext);
   
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  // Use the useGoals hook for state management with safe defaults
+  const hookResult = useGoals();
+  const goals = Array.isArray(hookResult.goals) ? hookResult.goals : [];
+  const loading = hookResult.loading;
+  const error = hookResult.error;
+  const createNewGoal = hookResult.createNewGoal;
+  const loadGoals = hookResult.loadGoals;
+  
   const [showAddGoalModal, setShowAddGoalModal] = useState(false);
   const [creatingGoal, setCreatingGoal] = useState(false);
   const [selectedGoalForInsights, setSelectedGoalForInsights] = useState<Goal | null>(null);
   const [showInsightsDrawer, setShowInsightsDrawer] = useState(false);
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+  const [refreshing, setRefreshing] = useState(false);
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-IN', {
@@ -34,41 +40,25 @@ const GoalsScreen: React.FC = () => {
 
   const calcPct = (cur: number, tgt: number) => Math.min((cur / tgt) * 100, 100);
 
-  const loadGoals = async () => {
-    try {
-      const goalsData = await fetchGoals();
-      setGoals(goalsData);
-    } catch (error) {
-      console.error('Failed to load goals:', error);
-      showToast.error('Failed to load goals. Please check your connection and try again.');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    loadGoals();
-  };
+    await loadGoals(false);
+    setRefreshing(false);
+  }, [loadGoals]);
 
-  const handleCreateGoal = async (goalData: CreateGoalRequest) => {
+  const handleCreateGoal = useCallback(async (goalData: CreateGoalRequest) => {
     setCreatingGoal(true);
     try {
-      const newGoal = await createGoal(goalData);
-      setGoals(prevGoals => [newGoal, ...prevGoals]);
+      await createNewGoal(goalData);
       showToast.success('Goal created successfully!');
+      setShowAddGoalModal(false);
     } catch (error) {
       console.error('Failed to create goal:', error);
       throw error; // Re-throw to let AddGoalModal handle the error
     } finally {
       setCreatingGoal(false);
     }
-  };
-
-  useEffect(() => {
-    loadGoals();
-  }, []);
+  }, [createNewGoal]);
 
   if (loading) {
     return <LoadingSpinner message="Loading goals..." />;

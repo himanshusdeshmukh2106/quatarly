@@ -4,35 +4,62 @@ import AssetCard from '../AssetCard';
 import { ThemeContext } from '../../context/ThemeContext';
 import { Asset, TradableAsset, PhysicalAsset } from '../../types';
 
-// Mock theme
+// Mock theme - matching full theme interface
 const mockTheme = {
   background: '#FFFFFF',
+  backgroundSecondary: '#F8F9FA',
+  backgroundTertiary: '#F1F5F9',
   card: '#F8F9FA',
   cardElevated: '#FFFFFF',
+  cardGlass: 'rgba(255, 255, 255, 0.8)',
   text: '#1F2937',
   textMuted: '#6B7280',
+  textLight: '#9CA3AF',
   border: '#E5E7EB',
+  borderMuted: '#F3F4F6',
+  borderLight: '#F9FAFB',
+  divider: '#E5E7EB',
   primary: '#3B82F6',
-  secondary: '#10B981',
+  primaryLight: '#DBEAFE',
+  primaryDark: '#1E40AF',
   accent: '#8B5CF6',
   accentMuted: '#C4B5FD',
   success: '#10B981',
+  successMuted: '#D1FAE5',
+  successLight: '#ECFDF5',
   warning: '#F59E0B',
+  warningMuted: '#FEF3C7',
+  warningLight: '#FFFBEB',
   error: '#EF4444',
+  errorMuted: '#FEE2E2',
+  errorLight: '#FEF2F2',
   info: '#3B82F6',
-  borderMuted: '#F3F4F6',
-  surfaceVariant: '#F1F5F9',
-  onSurface: '#475569',
-  onSurfaceVariant: '#64748B',
-  outline: '#CBD5E1',
-  outlineVariant: '#E2E8F0',
-  inverseSurface: '#334155',
-  inverseOnSurface: '#F1F5F9',
-  inversePrimary: '#93C5FD',
-  shadow: '#000000',
-  scrim: '#000000',
-  surfaceTint: '#3B82F6',
-  emergency: '#DC2626',
+  infoMuted: '#DBEAFE',
+  infoLight: '#EFF6FF',
+  profit: '#059669',
+  loss: '#EF4444',
+  neutral: '#6B7280',
+  investment: '#2563EB',
+  savings: '#059669',
+  debt: '#EF4444',
+  insurance: '#7C3AED',
+  education: '#EA580C',
+  travel: '#0891B2',
+  emergency: '#BE123C',
+  spacing: { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, '2xl': 40, '3xl': 48, '4xl': 56, '5xl': 64 },
+  typography: { 
+    fontFamily: { primary: 'System', mono: 'Monospace' }, 
+    fontSize: { xs: 12, sm: 14, md: 16, lg: 18, xl: 20, '2xl': 24, '3xl': 30, '4xl': 36, '5xl': 48 }, 
+    fontWeight: { light: '300', regular: '400', medium: '500', semibold: '600', bold: '700', extrabold: '800' }, 
+    lineHeight: { tight: 1.25, normal: 1.5, relaxed: 1.75 } 
+  },
+  borderRadius: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, '2xl': 24, full: 9999 },
+  shadows: { 
+    sm: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }, 
+    md: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 }, 
+    lg: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 4 }, 
+    xl: { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 16, elevation: 8 } 
+  },
 };
 
 const mockTradableAsset: TradableAsset = {
@@ -80,15 +107,12 @@ const mockPhysicalAsset: PhysicalAsset = {
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-01T00:00:00Z',
   lastUpdated: '2024-01-01T00:00:00Z',
-  purity: '24K',
-  storage: 'Bank vault',
-  certificate: 'CERT123',
   manuallyUpdated: true,
 };
 
 const renderWithTheme = (component: React.ReactElement) => {
   return render(
-    <ThemeContext.Provider value={{ theme: mockTheme, isDarkMode: false, toggleTheme: jest.fn() }}>
+    <ThemeContext.Provider value={{ theme: mockTheme as any, isDarkMode: false, toggleTheme: jest.fn() }}>
       {component}
     </ThemeContext.Provider>
   );
@@ -154,7 +178,6 @@ describe('AssetCard', () => {
 
       expect(getByText('Gold Holdings')).toBeTruthy();
       expect(getByText('100 grams')).toBeTruthy();
-      expect(getByText('Purity: 24K')).toBeTruthy();
       expect(getByText('₹5,500')).toBeTruthy();
     });
 
@@ -163,8 +186,6 @@ describe('AssetCard', () => {
         <AssetCard asset={mockPhysicalAsset} />
       );
 
-      expect(getByText('Storage: Bank vault')).toBeTruthy();
-      expect(getByText('Cert: CERT123')).toBeTruthy();
       expect(getByText('Manually updated')).toBeTruthy();
     });
 
@@ -190,12 +211,13 @@ describe('AssetCard', () => {
     });
 
     it('supports screen reader navigation', () => {
-      const { getByRole } = renderWithTheme(
+      const { getAllByRole } = renderWithTheme(
         <AssetCard asset={mockTradableAsset} />
       );
 
-      // The main card should be accessible
-      expect(getByRole('button')).toBeTruthy();
+      // The main card and insights button should be accessible
+      const buttons = getAllByRole('button');
+      expect(buttons.length).toBeGreaterThan(0);
     });
   });
 
@@ -226,11 +248,13 @@ describe('AssetCard', () => {
         totalGainLossPercent: 0,
       };
 
-      const { getByText } = renderWithTheme(
+      const { getAllByText } = renderWithTheme(
         <AssetCard asset={assetWithZeroValues} />
       );
 
-      expect(getByText('$0 (0.00%)')).toBeTruthy();
+      // Should show $0 (+0.00%) for both Daily Change and Total P&L
+      const zeroValues = getAllByText('$0 (+0.00%)');
+      expect(zeroValues.length).toBe(2);
     });
   });
 

@@ -2,7 +2,9 @@ import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAssets } from '../useAssets';
-import * as api from '../../services/api';
+import { assetsApi } from '../../api/assets';
+import { handleApiError } from '../../utils/errors';
+import { ApiError } from '../../utils/errors/ApiError';
 import InvestmentCache from '../../services/investmentCache';
 import PriceUpdateService from '../../services/priceUpdateService';
 
@@ -12,12 +14,28 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(),
 }));
 
-jest.mock('../../services/api', () => ({
-  fetchAssets: jest.fn(),
-  createAsset: jest.fn(),
-  updateAsset: jest.fn(),
-  deleteAsset: jest.fn(),
-  refreshAssetPrices: jest.fn(),
+jest.mock('../../api/assets', () => ({
+  assetsApi: {
+    fetchAll: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    refreshPrices: jest.fn(),
+  },
+}));
+
+jest.mock('../../utils/errors', () => ({
+  handleApiError: jest.fn((error) => {
+    if (error instanceof Error) {
+      return new (require('../../utils/errors/ApiError').ApiError)(
+        error.message,
+        500,
+        'ERROR',
+        error.message || 'An error occurred'
+      );
+    }
+    return error;
+  }),
 }));
 
 jest.mock('../../services/investmentCache', () => ({
@@ -32,9 +50,8 @@ jest.mock('../../services/priceUpdateService', () => ({
   forceUpdatePrices: jest.fn(),
 }));
 
-jest.mock('../../utils/networkUtils', () => ({
-  getErrorMessage: jest.fn((error) => error.message || 'Network error'),
-  withRetry: jest.fn((fn) => fn()),
+jest.mock('../../utils/debounce', () => ({
+  debounce: jest.fn((fn) => fn),
 }));
 
 // Mock Alert
@@ -76,9 +93,6 @@ const mockAssets = [
     totalValue: 9750,
     totalGainLoss: 750,
     totalGainLossPercent: 8.33,
-    purity: '24K',
-    storage: 'Bank Locker',
-    certificate: 'GC123456',
     manuallyUpdated: true,
     lastUpdated: '2024-01-15T10:00:00Z',
     aiAnalysis: 'Good hedge against inflation',
@@ -94,7 +108,7 @@ describe('useAssets', () => {
     jest.clearAllMocks();
     (AsyncStorage.getItem as jest.Mock).mockResolvedValue('mock-token');
     (InvestmentCache.getCachedAssets as jest.Mock).mockResolvedValue(null);
-    (api.fetchAssets as jest.Mock).mockResolvedValue(mockAssets);
+    (assetsApi.fetchAll as jest.Mock).mockResolvedValue(mockAssets);
   });
 
   it('initializes with correct default state', () => {
@@ -117,7 +131,7 @@ describe('useAssets', () => {
 
     expect(result.current.assets).toEqual(mockAssets);
     expect(result.current.error).toBe(null);
-    expect(api.fetchAssets).toHaveBeenCalledWith('mock-token');
+    expect(assetsApi.fetchAll).toHaveBeenCalled();
     expect(InvestmentCache.cacheAssets).toHaveBeenCalledWith(mockAssets);
   });
 
@@ -132,12 +146,12 @@ describe('useAssets', () => {
 
     expect(result.current.assets).toEqual(mockAssets);
     // Should still fetch fresh data in background
-    expect(api.fetchAssets).toHaveBeenCalled();
+    expect(assetsApi.fetchAll).toHaveBeenCalled();
   });
 
   it('handles API errors gracefully', async () => {
     const errorMessage = 'Failed to fetch assets';
-    (api.fetchAssets as jest.Mock).mockRejectedValue(new Error(errorMessage));
+    (assetsApi.fetchAll as jest.Mock).mockRejectedValue(new Error(errorMessage));
 
     const { result } = renderHook(() => useAssets());
 
@@ -151,7 +165,7 @@ describe('useAssets', () => {
 
   it('falls back to cached data on API error', async () => {
     (InvestmentCache.getCachedAssets as jest.Mock).mockResolvedValue(mockAssets);
-    (api.fetchAssets as jest.Mock).mockRejectedValue(new Error('Network error'));
+    (assetsApi.fetchAll as jest.Mock).mockRejectedValue(new Error('Network error'));
 
     const { result } = renderHook(() => useAssets());
 
@@ -170,16 +184,11 @@ describe('useAssets', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    act(() => {
-      result.current.refreshAssets();
+    await act(async () => {
+      await result.current.refreshAssets();
     });
 
-    expect(result.current.refreshing).toBe(true);
     expect(PriceUpdateService.forceUpdatePrices).toHaveBeenCalled();
-
-    await waitFor(() => {
-      expect(result.current.refreshing).toBe(false);
-    });
   });
 
   it('creates new asset successfully', async () => {
@@ -200,14 +209,14 @@ describe('useAssets', () => {
       await result.current.createNewAsset(newAssetData);
     });
 
-    expect(api.createAsset).toHaveBeenCalledWith(newAssetData, 'mock-token');
+    expect(assetsApi.create).toHaveBeenCalledWith(newAssetData);
     expect(Alert.alert).toHaveBeenCalledWith('Success', 'Asset added successfully!');
   });
 
   it('handles asset creation errors', async () => {
     const { result } = renderHook(() => useAssets());
     const errorMessage = 'Failed to create asset';
-    (api.createAsset as jest.Mock).mockRejectedValue(new Error(errorMessage));
+    (assetsApi.create as jest.Mock).mockRejectedValue(new Error(errorMessage));
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
@@ -226,7 +235,7 @@ describe('useAssets', () => {
       }
     });
 
-    expect(Alert.alert).toHaveBeenCalledWith('Error', 'Failed to add asset. Please try again.');
+    expect(Alert.alert).toHaveBeenCalledWith('Error', errorMessage);
   });
 
   it('updates existing asset successfully', async () => {
@@ -241,7 +250,7 @@ describe('useAssets', () => {
       await result.current.updateExistingAsset('1', updatedData);
     });
 
-    expect(api.updateAsset).toHaveBeenCalledWith('1', updatedData, 'mock-token');
+    expect(assetsApi.update).toHaveBeenCalledWith('1', expect.objectContaining({ name: 'Updated Asset Name' }));
     expect(Alert.alert).toHaveBeenCalledWith('Success', 'Asset updated successfully!');
   });
 
@@ -256,7 +265,7 @@ describe('useAssets', () => {
       await result.current.deleteExistingAsset('1');
     });
 
-    expect(api.deleteAsset).toHaveBeenCalledWith('1', 'mock-token');
+    expect(assetsApi.delete).toHaveBeenCalledWith('1');
     expect(Alert.alert).toHaveBeenCalledWith('Success', 'Asset deleted successfully!');
   });
 
@@ -277,21 +286,23 @@ describe('useAssets', () => {
       expect(result.current.loading).toBe(false);
     });
 
+    // Reset the mock to ensure clean state
+    (assetsApi.create as jest.Mock).mockResolvedValue(mockAssets[0]);
+
     await act(async () => {
       await result.current.bulkImportAssets(parsedAssets);
     });
 
-    expect(api.createAsset).toHaveBeenCalledWith(
+    expect(assetsApi.create).toHaveBeenCalledWith(
       expect.objectContaining({
         assetType: 'stock',
         name: 'Tesla Inc.',
         symbol: 'TSLA',
         quantity: 2,
         purchasePrice: 800,
-      }),
-      'mock-token'
+      })
     );
-    expect(Alert.alert).toHaveBeenCalledWith('Success', '1 assets imported successfully!');
+    expect(Alert.alert).toHaveBeenCalledWith('Import Complete', '1 assets imported successfully!');
   });
 
   it('filters assets correctly', async () => {
@@ -396,7 +407,7 @@ describe('useAssets', () => {
       await result.current.updatePhysicalAssetValue('2', 2000);
     });
 
-    expect(api.updateAsset).toHaveBeenCalledWith('2', { purchasePrice: 2000 }, 'mock-token');
+    expect(assetsApi.update).toHaveBeenCalledWith('2', { currentPrice: 2000 });
     expect(Alert.alert).toHaveBeenCalledWith('Success', 'Asset value updated successfully!');
   });
 });

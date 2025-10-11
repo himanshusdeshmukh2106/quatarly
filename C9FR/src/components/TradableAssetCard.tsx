@@ -1,387 +1,340 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
+  Image,
 } from 'react-native';
-import Svg, { Line } from 'react-native-svg';
 import { TradableAsset } from '../types';
+import { useStyles } from '../hooks/useStyles';
 
 interface TradableAssetCardProps {
   asset: TradableAsset;
-  onPress?: () => void;
-  onLongPress?: () => void;
-  onInsightsPress?: () => void;
+  onPress?: (asset: TradableAsset) => void;
+  onLongPress?: (asset: TradableAsset) => void;
+  onInsightsPress?: (asset: TradableAsset) => void;
   style?: any;
+  testID?: string;
 }
 
 export const TradableAssetCard: React.FC<TradableAssetCardProps> = ({
   asset,
   onPress,
   onLongPress,
+  onInsightsPress,
   style,
+  testID,
 }) => {
-  const formatCurrency = (amount: number, currency?: string) => {
+  const styles = useStyles((theme) => ({
+    card: {
+      backgroundColor: theme.card,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 12,
+      shadowColor: theme.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    headerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    logo: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      marginRight: 12,
+    },
+    logoFallback: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: theme.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
+    },
+    logoText: {
+      color: '#FFFFFF',
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    headerInfo: {
+      flex: 1,
+    },
+    symbol: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.text,
+      marginBottom: 2,
+    },
+    name: {
+      fontSize: 14,
+      color: theme.textMuted,
+    },
+    sector: {
+      fontSize: 12,
+      color: theme.textMuted,
+      marginTop: 2,
+    },
+    badges: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    badge: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 4,
+    },
+    badgeBuy: {
+      backgroundColor: theme.success + '20',
+    },
+    badgeHold: {
+      backgroundColor: theme.warning + '20',
+    },
+    badgeSell: {
+      backgroundColor: theme.error + '20',
+    },
+    badgeText: {
+      fontSize: 10,
+      fontWeight: '700',
+    },
+    badgeTextBuy: {
+      color: theme.success,
+    },
+    badgeTextHold: {
+      color: theme.warning,
+    },
+    badgeTextSell: {
+      color: theme.error,
+    },
+    riskBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 4,
+      backgroundColor: theme.textMuted + '20',
+    },
+    riskText: {
+      fontSize: 10,
+      fontWeight: '600',
+      color: theme.textMuted,
+    },
+    content: {
+      marginBottom: 12,
+    },
+    row: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 8,
+    },
+    label: {
+      fontSize: 13,
+      color: theme.textMuted,
+    },
+    value: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.text,
+    },
+    totalValue: {
+      fontSize: 24,
+      fontWeight: '700',
+      color: theme.text,
+      marginBottom: 4,
+    },
+    quantity: {
+      fontSize: 14,
+      color: theme.textMuted,
+      marginBottom: 12,
+    },
+    metricsRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 12,
+    },
+    metric: {
+      flex: 1,
+    },
+    metricLabel: {
+      fontSize: 11,
+      color: theme.textMuted,
+      marginBottom: 4,
+    },
+    metricValue: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.text,
+    },
+    positive: {
+      color: theme.success,
+    },
+    negative: {
+      color: theme.error,
+    },
+    neutral: {
+      color: theme.textMuted,
+    },
+    insightsButton: {
+      marginTop: 12,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      backgroundColor: theme.primary + '10',
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+    insightsButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.primary,
+    },
+  }));
+
+  // Format currency with thousands separators
+  const formatCurrency = useCallback((amount: number, currency?: string): string => {
+    const formatted = Math.abs(amount).toLocaleString('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+    
     if (currency === 'USD') {
-      return `$${amount.toFixed(2)}`;
+      return `$${formatted}`;
     }
-    return `₹${amount.toFixed(2)}`;
-  };
+    return `₹${formatted}`;
+  }, []);
 
-  const getPerformanceColor = (value: number) => {
-    if (value > 0) return '#22d3ee'; // Cyan/turquoise for positive (Perplexity style)
-    if (value < 0) return '#ef4444'; // Red for negative
-    return '#6B7280'; // Gray for neutral
-  };
+  // Format change with sign and percentage
+  const formatChange = useCallback((amount: number, percent: number, currency?: string): string => {
+    const sign = amount >= 0 ? '+' : '';
+    const currencySymbol = currency === 'USD' ? '$' : '₹';
+    return `${currencySymbol}${Math.abs(amount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} (${sign}${percent.toFixed(2)}%)`;
+  }, []);
 
-  const getPercentageColor = (value: number) => {
-    if (value > 0) return '#10b981'; // Green for positive percentage
-    if (value < 0) return '#ef4444'; // Red for negative percentage
-    return '#6B7280'; // Gray for neutral
-  };
+  // Get color based on value
+  const getValueColor = useCallback((value: number) => {
+    if (value > 0) return styles.positive;
+    if (value < 0) return styles.negative;
+    return styles.neutral;
+  }, [styles]);
 
-  // Generate mock chart data for visual consistency
-  const generateChartData = (basePrice: number, isPositive: boolean) => {
-    const data = [];
-    let currentPrice = basePrice * 1.2; // Start higher for downward trend
+  // Event handlers with useCallback
+  const handlePress = useCallback(() => {
+    onPress?.(asset);
+  }, [onPress, asset]);
 
-    for (let i = 0; i < 12; i++) {
-      data.push(currentPrice);
-      // Create a general downward trend with some variation
-      const change = isPositive ?
-        (Math.random() - 0.3) * (basePrice * 0.02) : // Slight upward bias for positive
-        (Math.random() - 0.7) * (basePrice * 0.02);   // Downward bias for negative
-      currentPrice += change;
-    }
+  const handleLongPress = useCallback(() => {
+    onLongPress?.(asset);
+  }, [onLongPress, asset]);
 
-    // Ensure the last point matches the current price
-    data[data.length - 1] = basePrice;
-    return data;
-  };
-
-  // Generate AI insight based on asset performance
-  const generateInsight = (asset: TradableAsset) => {
-    const isPositive = asset.totalGainLoss >= 0;
-
-    if (isPositive) {
-      return `${asset.name} shares showed positive performance with strong fundamentals and favorable market conditions supporting continued growth potential in the current economic environment.`;
-    } else {
-      return `${asset.name} shares experienced some volatility due to market conditions and sector-specific factors, but maintains solid underlying value with potential for recovery in the medium term.`;
-    }
-  };
-
-  const currentPrice = asset.currentPrice || asset.totalValue;
-  const change = asset.totalGainLoss || 0;
-  const changePercent = asset.totalGainLossPercent || 0;
-  const isNegative = change < 0;
-  const chartColor = getPerformanceColor(change);
-  const percentageColor = getPercentageColor(change);
-  const symbol = asset.symbol || asset.name.substring(0, 2).toUpperCase();
-  const chartData = generateChartData(currentPrice, change >= 0);
+  const handleInsightsPress = useCallback(() => {
+    onInsightsPress?.(asset);
+  }, [onInsightsPress, asset]);
 
   return (
     <TouchableOpacity
-      style={[styles.exactReplicaCard, style]}
-      onPress={onPress}
-      onLongPress={onLongPress}
+      style={[styles.card, style]}
+      onPress={handlePress}
+      onLongPress={handleLongPress}
       activeOpacity={0.7}
+      testID={testID}
+      accessibilityLabel={`${asset.name} stock card`}
+      accessibilityHint="Double tap to view stock details, long press for options"
+      accessibilityRole="button"
     >
-      {/* Perplexity-Style Header */}
-      <View style={styles.perplexityHeader}>
-        <View style={styles.perplexityLeft}>
-          <View style={styles.perplexityIconFallback}>
-            <Text style={styles.perplexityIconText}>{symbol}</Text>
-          </View>
-          <View style={styles.perplexityCompanyInfo}>
-            <Text style={styles.perplexityCompanyName} numberOfLines={1}>
-              {asset.name}
-            </Text>
-            <Text style={styles.perplexitySymbol}>
-              {asset.symbol} · {asset.exchange || 'BSE'}
-            </Text>
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          {asset.logoUrl ? (
+            <Image source={{ uri: asset.logoUrl }} style={styles.logo} />
+          ) : (
+            <View style={styles.logoFallback}>
+              <Text style={styles.logoText}>{asset.symbol?.substring(0, 2) || 'AS'}</Text>
+            </View>
+          )}
+          <View style={styles.headerInfo}>
+            <Text style={styles.symbol}>{asset.symbol}</Text>
+            <Text style={styles.name}>{asset.name}</Text>
+            {asset.sector && <Text style={styles.sector}>{asset.sector}</Text>}
           </View>
         </View>
-        <View style={styles.perplexityRight}>
-          <View style={styles.perplexityPriceRow}>
-            <Text style={styles.perplexityPrice}>
-              {formatCurrency(currentPrice, asset.currency)}
-            </Text>
-            <View style={[styles.perplexityChangePill, { backgroundColor: percentageColor + '20' }]}>
-              <Text style={[styles.perplexityChangeIcon, { color: percentageColor }]}>
-                {isNegative ? '↓' : '↑'}
-              </Text>
-              <Text style={[styles.perplexityChange, { color: percentageColor }]}>
-                {Math.abs(changePercent).toFixed(2)}%
+        <View style={styles.badges}>
+          {asset.recommendation && (
+            <View style={[
+              styles.badge,
+              asset.recommendation === 'buy' ? styles.badgeBuy :
+              asset.recommendation === 'hold' ? styles.badgeHold :
+              styles.badgeSell
+            ]}>
+              <Text style={[
+                styles.badgeText,
+                asset.recommendation === 'buy' ? styles.badgeTextBuy :
+                asset.recommendation === 'hold' ? styles.badgeTextHold :
+                styles.badgeTextSell
+              ]}>
+                {asset.recommendation.toUpperCase()}
               </Text>
             </View>
-          </View>
+          )}
+          {asset.riskLevel && (
+            <View style={styles.riskBadge}>
+              <Text style={styles.riskText}>{asset.riskLevel.toUpperCase()} RISK</Text>
+            </View>
+          )}
         </View>
       </View>
 
-      {/* Perplexity-Style Chart and Stats */}
-      <View style={styles.perplexityBody}>
-        {/* Left Side - Chart with Y-axis */}
-        <View style={styles.perplexityChartSection}>
-          {/* Y-axis labels */}
-          <View style={styles.perplexityYAxis}>
-            <Text style={styles.perplexityYLabel}>{Math.round(currentPrice * 1.02)}</Text>
-            <Text style={styles.perplexityYLabel}>{Math.round(currentPrice * 1.01)}</Text>
-            <Text style={styles.perplexityYLabel}>{Math.round(currentPrice)}</Text>
-          </View>
-
-          {/* Chart area */}
-          <View style={styles.perplexityChartContainer}>
-            <View style={styles.perplexityChart}>
-              {/* Perplexity-style line chart with cyan color */}
-              <Svg width={140} height={70}>
-                {chartData.map((point: number, idx: number) => {
-                  if (idx === chartData.length - 1) return null;
-                  const x1 = (idx / (chartData.length - 1)) * 140;
-                  const x2 = ((idx + 1) / (chartData.length - 1)) * 140;
-                  const minPrice = Math.min(...chartData);
-                  const maxPrice = Math.max(...chartData);
-                  const priceRange = maxPrice - minPrice || 1;
-                  const y1 = 70 - ((point - minPrice) / priceRange) * 70;
-                  const y2 = 70 - ((chartData[idx + 1] - minPrice) / priceRange) * 70;
-
-                  return (
-                    <Line
-                      key={idx}
-                      x1={x1}
-                      y1={y1}
-                      x2={x2}
-                      y2={y2}
-                      stroke={chartColor}
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                    />
-                  );
-                })}
-              </Svg>
-            </View>
-            <Text style={styles.perplexityTime}>
-              {new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-            </Text>
-          </View>
-        </View>
-
-        {/* Right Side - Stats Grid */}
-        <View style={styles.perplexityStatsSection}>
-          <View style={styles.perplexityStatRow}>
-            <Text style={styles.perplexityStatLabel}>Volume</Text>
-            <Text style={styles.perplexityStatValue}>{asset.volume || '1.2M'}</Text>
-          </View>
-          <View style={styles.perplexityStatRow}>
-            <Text style={styles.perplexityStatLabel}>Market Cap</Text>
-            <Text style={styles.perplexityStatValue}>
-              {asset.marketCap ? `${(asset.marketCap / 1000000).toFixed(1)}M` : `${(asset.totalValue * 100 / 1000000).toFixed(1)}M`}
-            </Text>
-          </View>
-          <View style={styles.perplexityStatRow}>
-            <Text style={styles.perplexityStatLabel}>P/E Ratio</Text>
-            <Text style={styles.perplexityStatValue}>{asset.peRatio?.toFixed(2) || (Math.random() * 50 + 10).toFixed(2)}</Text>
-          </View>
-          <View style={styles.perplexityStatRow}>
-            <Text style={styles.perplexityStatLabel}>Dividend Yield</Text>
-            <Text style={styles.perplexityStatValue}>
-              {asset.dividendYield ? `${asset.dividendYield.toFixed(2)}%` : 'N/A'}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Perplexity-Style AI Insight */}
-      <View style={styles.perplexityInsightContainer}>
-        <Text style={styles.perplexityInsightText}>
-          {generateInsight(asset)}
+      <View style={styles.content}>
+        <Text style={styles.totalValue}>
+          {formatCurrency(asset.totalValue, asset.currency)}
         </Text>
+        <Text style={styles.quantity}>{asset.quantity} shares</Text>
+
+        <View style={styles.metricsRow}>
+          <View style={styles.metric}>
+            <Text style={styles.metricLabel}>Current Price</Text>
+            <Text style={styles.metricValue}>
+              {formatCurrency(asset.currentPrice || 0, asset.currency)}
+            </Text>
+          </View>
+          <View style={styles.metric}>
+            <Text style={styles.metricLabel}>Daily Change</Text>
+            <Text style={[styles.metricValue, getValueColor(asset.dailyChange || 0)]}>
+              {formatChange(asset.dailyChange || 0, asset.dailyChangePercent || 0, asset.currency)}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.row}>
+          <Text style={styles.label}>Total P&L</Text>
+          <Text style={[styles.value, getValueColor(asset.totalGainLoss || 0)]}>
+            {formatChange(asset.totalGainLoss || 0, asset.totalGainLossPercent || 0, asset.currency)}
+          </Text>
+        </View>
       </View>
+
+      {asset.aiAnalysis && (
+        <TouchableOpacity
+          style={styles.insightsButton}
+          onPress={handleInsightsPress}
+          accessibilityLabel="AI Insights"
+          accessibilityHint="View AI analysis for this stock"
+          accessibilityRole="button"
+        >
+          <Text style={styles.insightsButtonText}>View AI Insights</Text>
+        </TouchableOpacity>
+      )}
     </TouchableOpacity>
   );
 };
-
-const styles = StyleSheet.create({
-  // Perplexity-Style Card Design
-  exactReplicaCard: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 16,
-    marginHorizontal: 16,
-    marginBottom: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 12,
-    borderWidth: 1,
-    borderColor: '#2a2a2a',
-  },
-
-  // Header Styles
-  perplexityHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 24,
-  },
-  perplexityLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: 16,
-  },
-  perplexityIconFallback: {
-    width: 48,
-    height: 48,
-    borderRadius: 8,
-    backgroundColor: '#dc2626',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  perplexityIconText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#ffffff',
-    letterSpacing: 0.5,
-  },
-  perplexityCompanyInfo: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  perplexityCompanyName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#ffffff',
-    marginBottom: 4,
-    letterSpacing: -0.3,
-  },
-  perplexitySymbol: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#9ca3af',
-    letterSpacing: 0.2,
-  },
-  perplexityRight: {
-    alignItems: 'flex-end',
-  },
-  perplexityPriceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  perplexityPrice: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#ffffff',
-    letterSpacing: -0.5,
-  },
-  perplexityChangePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  perplexityChangeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  perplexityChangeIcon: {
-    fontSize: 14,
-    fontWeight: '700',
-    marginRight: 2,
-  },
-  perplexityChange: {
-    fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: 0.2,
-  },
-
-  // Body Styles (Chart + Stats)
-  perplexityBody: {
-    flexDirection: 'row',
-    marginBottom: 24,
-    minHeight: 100,
-  },
-  perplexityChartSection: {
-    flex: 1,
-    flexDirection: 'row',
-    marginRight: 24,
-  },
-  perplexityYAxis: {
-    width: 40,
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    paddingRight: 8,
-  },
-  perplexityYLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#6b7280',
-    textAlign: 'right',
-  },
-  perplexityChartContainer: {
-    flex: 1,
-    position: 'relative',
-    justifyContent: 'center',
-  },
-  perplexityChart: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  perplexityTime: {
-    position: 'absolute',
-    bottom: -18,
-    left: 0,
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#6b7280',
-  },
-  perplexityStatsSection: {
-    width: 180,
-    justifyContent: 'space-between',
-  },
-  perplexityStatRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  perplexityStatLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#9ca3af',
-    letterSpacing: 0.1,
-    flex: 1,
-  },
-  perplexityStatValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#ffffff',
-    letterSpacing: -0.2,
-    textAlign: 'right',
-  },
-
-  // Insight Styles
-  perplexityInsightContainer: {
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#2a2a2a',
-  },
-  perplexityInsightText: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '400',
-    color: '#9ca3af',
-    letterSpacing: 0.1,
-  },
-});
 
 // Memoize the component to prevent unnecessary re-renders
 const MemoizedTradableAssetCard = React.memo<TradableAssetCardProps>(
@@ -391,7 +344,8 @@ const MemoizedTradableAssetCard = React.memo<TradableAssetCardProps>(
       prevProps.asset.id === nextProps.asset.id &&
       prevProps.asset.totalValue === nextProps.asset.totalValue &&
       prevProps.asset.totalGainLoss === nextProps.asset.totalGainLoss &&
-      prevProps.asset.currentPrice === nextProps.asset.currentPrice
+      prevProps.asset.currentPrice === nextProps.asset.currentPrice &&
+      prevProps.asset.lastUpdated === nextProps.asset.lastUpdated
     );
   }
 );
