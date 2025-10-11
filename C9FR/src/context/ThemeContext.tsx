@@ -1,57 +1,82 @@
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../styles/designSystem';
 
-// Financial App Color Themes - Following 2025 Financial UI Best Practices
+// Premium Financial App Themes - 2025 Modern Design
 const lightTheme = {
-  // Core Financial Colors
-  background: '#f4f4f4', // Minimal Gray - Clean, modern background
-  text: '#222', // Deep charcoal for excellent readability
-  textMuted: '#a0a0a0', // Muted gray for secondary text
-  primary: '#003366', // Corporate Blue - Trust and stability
-  secondary: '#007a33', // Wealthy Green - Growth and prosperity
-  
+  // Core Colors
+  background: Colors.background.primary,
+  backgroundSecondary: Colors.background.secondary,
+  backgroundTertiary: Colors.background.tertiary,
+  text: Colors.neutral[900],
+  textMuted: Colors.neutral[600],
+  textLight: Colors.neutral[500],
+  primary: Colors.primary[500],
+  primaryLight: Colors.primary[100],
+  primaryDark: Colors.primary[700],
+
   // Surface Colors
-  card: '#fff', // Pure white cards for clean separation
-  cardElevated: '#fff', // Elevated cards (same as card in light mode)
-  
+  card: Colors.background.primary,
+  cardElevated: Colors.background.primary,
+  cardGlass: Colors.glass.light,
+
   // Interactive Colors
-  accent: '#ffd700', // Golden accent for premium features
-  accentMuted: '#fff9e3', // Light gold for subtle highlights
+  accent: Colors.gold[500],
+  accentMuted: Colors.gold[100],
   
   // Status Colors
-  success: '#007a33', // Wealthy green for positive actions
-  warning: '#ffe066', // Gold warning for attention
-  error: '#ff6f61', // Coral red for errors (not harsh red)
-  info: '#00509e', // Medium blue for information
-  
+  success: Colors.success[500],
+  successMuted: Colors.success[100],
+  successLight: Colors.success[50],
+  error: Colors.danger[500],
+  errorMuted: Colors.danger[100],
+  errorLight: Colors.danger[50],
+  warning: Colors.gold[500],
+  warningMuted: Colors.gold[100],
+  warningLight: Colors.gold[50],
+  info: Colors.primary[500],
+  infoMuted: Colors.primary[100],
+  infoLight: Colors.primary[50],
+
   // Border and Divider Colors
-  border: '#e0e0e0', // Light gray borders
-  borderMuted: '#f0f0f0', // Very light borders
-  divider: '#e0e0e0',
-  
+  border: Colors.neutral[200],
+  borderMuted: Colors.neutral[100],
+  borderLight: Colors.neutral[50],
+  divider: Colors.neutral[200],
+
   // Investment & Financial Specific Colors
-  profit: '#004d00', // Dark green for profits
-  loss: '#ff6f61', // Coral for losses (softer than red)
-  neutral: '#66a3ff', // Light blue for neutral states
-  
+  profit: Colors.success[600],
+  loss: Colors.danger[500],
+  neutral: Colors.neutral[500],
+
   // Category Colors for Opportunities/Goals
-  investment: '#007acc', // Bright blue for investments
-  savings: '#66b3a1', // Teal for savings
-  debt: '#ff6f61', // Coral for debt management
-  insurance: '#00509e', // Professional blue for insurance
-  education: '#d4af37', // Gold for education/skills
-  travel: '#66a3ff', // Light blue for travel
-  emergency: '#007a33', // Green for emergency funds
+  investment: Colors.primary[600],
+  savings: Colors.success[600],
+  debt: Colors.danger[600],
+  insurance: '#7c3aed',
+  education: '#ea580c',
+  travel: '#0891b2',
+  emergency: '#be123c',
+
+  // Design System Integration
+  spacing: Spacing,
+  typography: Typography,
+  borderRadius: BorderRadius,
+  shadows: Shadows
 };
 
 const darkTheme = {
-  // Core Financial Colors - Dark Mode
-  background: '#1C1C1E', // Standard dark background
-  text: '#E5E5E7', // Off-white for readability
-  textMuted: '#adb5bd', // Muted text in dark mode
-  primary: '#66a3ff', // Lighter blue for dark mode visibility
-  secondary: '#66b3a1', // Teal green for dark mode
+  // Core Colors - Dark Mode
+  background: Colors.background.dark,
+  backgroundSecondary: Colors.background.darkSecondary,
+  backgroundTertiary: Colors.background.darkTertiary,
+  text: Colors.neutral[50],
+  textMuted: Colors.neutral[400],
+  textLight: Colors.neutral[500],
+  primary: Colors.primary[400],
+  primaryLight: Colors.primary[900],
+  primaryDark: Colors.primary[300],
   
   // Surface Colors
   card: '#2C2C2E', // Dark cards

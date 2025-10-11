@@ -115,6 +115,28 @@ const OnboardingScreen = () => {
     }
   };
   
+  const validateRequiredFields = (): { isValid: boolean; missingFields: string[] } => {
+    const missingFields: string[] = [];
+
+    // Check critical questions that should be answered
+    const criticalQuestions = [1, 2, 6]; // Name, Age, Monthly Income
+
+    criticalQuestions.forEach(qId => {
+      const answer = answers[qId];
+      if (!answer || (!answer.custom_input && answer.selected_choices.length === 0)) {
+        const question = questionnaireQuestions.find(q => q.id === qId);
+        if (question) {
+          missingFields.push(question.text);
+        }
+      }
+    });
+
+    return {
+      isValid: missingFields.length === 0,
+      missingFields
+    };
+  };
+
   const handleSubmit = async () => {
     setLoading(true);
     try {
@@ -123,7 +145,19 @@ const OnboardingScreen = () => {
         setLoading(false);
         return;
       }
-      
+
+      // Validate required fields
+      const validation = validateRequiredFields();
+      if (!validation.isValid) {
+        Alert.alert(
+          "Missing Information",
+          `Please answer the following questions:\n\n${validation.missingFields.map(f => `• ${f}`).join('\n')}`,
+          [{ text: "OK" }]
+        );
+        setLoading(false);
+        return;
+      }
+
       const finalAnswers: Record<number, Answer> = JSON.parse(JSON.stringify(answers));
 
       // Consolidate expenses for question 8
@@ -139,15 +173,25 @@ const OnboardingScreen = () => {
         }
       });
 
-      finalAnswers[8] = {
-        question_id: 8,
-        selected_choices: [], // Not needed as we use custom_input
-        custom_input: Object.keys(allExpenses).length > 0 ? JSON.stringify(allExpenses) : null,
+      // Only add expense data if there are expenses
+      if (Object.keys(allExpenses).length > 0) {
+        finalAnswers[8] = {
+          question_id: 8,
+          selected_choices: [],
+          custom_input: JSON.stringify(allExpenses),
+        };
+      }
+
+      // Filter out empty responses
+      const payload = {
+        responses: Object.values(finalAnswers).filter(a => {
+          const hasCustomInput = a.custom_input && a.custom_input.trim() !== '';
+          const hasChoices = a.selected_choices && a.selected_choices.length > 0;
+          return hasCustomInput || hasChoices;
+        }),
       };
 
-      const payload = {
-        responses: Object.values(finalAnswers).filter(a => a.custom_input || a.selected_choices.length > 0),
-      };
+      console.log('Submitting questionnaire with', payload.responses.length, 'responses');
 
       // Ensure expense tracking is started if it wasn't triggered earlier
       if (!hasStartedTrackingRef.current) {
@@ -156,10 +200,21 @@ const OnboardingScreen = () => {
 
       await submitQuestionnaire(payload, authToken);
       await completeOnboarding();
+
+      // Show success message
+      Alert.alert(
+        "Success!",
+        "Your profile has been created. Welcome to Quatarly!",
+        [{ text: "Let's Go!", onPress: () => {} }]
+      );
+
       // The RootNavigator will handle the redirection automatically
-    } catch (error) {
-      console.error(error);
-      Alert.alert("Error", "Could not submit your answers. Please try again.");
+    } catch (error: any) {
+      console.error('Onboarding submission error:', error);
+      const errorMessage = error.response?.data?.detail ||
+                          error.response?.data?.error ||
+                          "Could not submit your answers. Please try again.";
+      Alert.alert("Error", errorMessage);
     } finally {
       setLoading(false);
     }

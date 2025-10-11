@@ -23,13 +23,22 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-64bq_ym*v0208+^_5xp^wkf#10gcx_kwfl=jyq_=(2b0lx+q4='
-
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['192.168.43.145', 'localhost', '127.0.0.1','10.110.219.229', '10.20.18.55','192.168.1.2','10.0.2.2','192.168.1.9','192.168.1.5']
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-64bq_ym*v0208+^_5xp^wkf#10gcx_kwfl=jyq_=(2b0lx+q4=')
+
+# Validate SECRET_KEY in production
+if not DEBUG and SECRET_KEY.startswith('django-insecure'):
+    raise ValueError("SECRET_KEY must be set in production environment")
+
+# Parse ALLOWED_HOSTS from environment variable
+ALLOWED_HOSTS = os.getenv(
+    'ALLOWED_HOSTS',
+    '192.168.43.145,localhost,127.0.0.1,10.110.219.229,10.20.18.55,192.168.1.2,10.0.2.2,192.168.1.9,192.168.1.5'
+).split(',')
+ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS]
 
 
 # Application definition
@@ -67,6 +76,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'django.middleware.gzip.GZipMiddleware',  # Compress responses
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -75,12 +85,21 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
+    'C8V2.middleware.RequestLoggingMiddleware',  # Custom request logging for debugging
 ]
 
+# GZip Compression Settings
+GZIP_COMPRESSOR_ENABLED = True
+GZIP_COMPRESSOR_MIN_SIZE = 1024  # Only compress responses larger than 1KB
+
 # CORS settings for React Native
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # React Native metro
-]
+# Parse from environment variable for flexibility
+CORS_ALLOWED_ORIGINS = os.getenv(
+    'CORS_ALLOWED_ORIGINS',
+    'http://localhost:3000,http://localhost:8081'
+).split(',')
+CORS_ALLOWED_ORIGINS = [origin.strip() for origin in CORS_ALLOWED_ORIGINS]
+CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = 'C8V2.urls'
 
@@ -111,8 +130,17 @@ DATABASES = {
         'NAME': os.getenv('DB_NAME'),
         'USER': os.getenv('DB_USER'),
         'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '5432'),
+        # Connection pooling for better performance
+        'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', '600')),  # 10 minutes
+        'CONN_HEALTH_CHECKS': True,  # Enable connection health checks
+        'OPTIONS': {
+            'connect_timeout': 10,
+            'options': '-c statement_timeout=30000',  # 30 second query timeout
+        },
+        # Disable persistent connections in DEBUG mode to avoid connection leaks
+        'DISABLE_SERVER_SIDE_CURSORS': DEBUG,
     }
 }
 
@@ -174,25 +202,64 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
     ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.ScopedRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/hour',
+        'user': '1000/hour',
+        'burst': '60/minute',  # Burst protection
+        'sustained': '1000/day',  # Daily limit
+        'dj_rest_auth': '100/hour',  # Rate limit for dj_rest_auth endpoints
+    },
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 50,
+    'MAX_PAGE_SIZE': 100,
+    # Performance optimizations
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ] if not DEBUG else [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ],
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+    ],
+    # Exception handling
+    'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
+    # Schema generation
+    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
 }
 
 AUTH_USER_MODEL = 'users.CustomUser'
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-# Allauth settings for username login
-ACCOUNT_LOGIN_METHODS = ['username']
-ACCOUNT_SIGNUP_FIELDS = ['username', 'email']
-ACCOUNT_EMAIL_VERIFICATION = 'none'
+# Allauth settings - Updated for django-allauth 0.57.0+
+# Configure login methods (username, email, or both)
+ACCOUNT_LOGIN_METHODS = {'username'}  # Set of login methods: {'username'}, {'email'}, or {'username', 'email'}
+ACCOUNT_EMAIL_VERIFICATION = 'none'  # Options: 'none', 'optional', 'mandatory'
 ACCOUNT_UNIQUE_EMAIL = True
 
-# For development purposes, allow all origins.
-# For production, you should restrict this to your frontend's domain.
-CORS_ALLOW_ALL_ORIGINS = True
+# Signup fields configuration
+# Format: ['field*'] where * indicates required
+# Available fields: 'username', 'email', 'password1', 'password2'
+# The asterisk (*) indicates the field is required
+ACCOUNT_SIGNUP_FIELDS = ['username*', 'email*', 'password1*', 'password2*']
+
+# SECURITY: Only allow all origins in development
+# In production, use CORS_ALLOWED_ORIGINS instead
+CORS_ALLOW_ALL_ORIGINS = DEBUG  # Only True in development
 
 REST_AUTH = {
     'LOGIN_SERIALIZER': 'users.serializers.CustomLoginSerializer',
     'USER_DETAILS_SERIALIZER': 'users.serializers.CustomUserDetailsSerializer',
+    'REGISTER_SERIALIZER': 'users.serializers.CustomRegisterSerializer',
 }
 
 # Perplexity API settings
@@ -204,24 +271,149 @@ FMP_API_KEY = os.getenv('FMP_API_KEY')
 # Finnhub API settings
 FINNHUB_API_KEY = os.getenv('FINNHUB_API_KEY')
 
+# Redis Cache Configuration
+# Note: Using Django's built-in RedisCache backend (Django 4.0+)
+# For advanced connection pooling, consider using django-redis package
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': os.getenv('REDIS_URL', 'redis://localhost:6379/1'),
+        'OPTIONS': {
+            'socket_connect_timeout': 5,
+            'socket_timeout': 5,
+            # Note: connection_pool_kwargs is not supported in Django's RedisCache
+            # The backend manages connection pooling automatically
+        },
+        'KEY_PREFIX': 'quatarly',
+        'VERSION': 1,
+        'TIMEOUT': 300,  # 5 minutes default
+    },
+    # Separate cache for sessions
+    'sessions': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': os.getenv('REDIS_URL', 'redis://localhost:6379/2'),
+        'OPTIONS': {
+            'socket_connect_timeout': 5,
+            'socket_timeout': 5,
+        },
+        'KEY_PREFIX': 'quatarly_session',
+        'TIMEOUT': 86400,  # 24 hours for sessions
+    },
+}
+
+# Session cache
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'sessions'
+SESSION_COOKIE_AGE = 86400  # 24 hours
+SESSION_SAVE_EVERY_REQUEST = False  # Only save when modified
+
 # Celery Configuration
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
+CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60  # 25 minutes
 
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        },
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            'formatter': 'simple' if DEBUG else 'verbose',
+            'level': 'INFO',
+        },
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
+            'maxBytes': 1024 * 1024 * 10,  # 10 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'level': 'INFO',
+        },
+        'error_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'errors.log'),
+            'maxBytes': 1024 * 1024 * 10,  # 10 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'level': 'ERROR',
         },
     },
     'root': {
         'handlers': ['console'],
-        'level': 'INFO',
+        'level': 'WARNING',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'] if not DEBUG else ['console'],
+            'level': 'WARNING',  # Reduced from INFO to WARNING
+            'propagate': False,
+        },
+        'django.db.backends': {
+            'handlers': [],  # Disable SQL query logging by default
+            'level': 'WARNING',  # Only show warnings and errors
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console', 'error_file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django.security': {
+            'handlers': ['console', 'error_file'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'investments': {
+            'handlers': ['console', 'file'] if not DEBUG else ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'celery': {
+            'handlers': ['console', 'file'] if not DEBUG else ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
     },
 }
+
+# Create logs directory if it doesn't exist
+import os as os_module
+logs_dir = os.path.join(BASE_DIR, 'logs')
+if not os_module.path.exists(logs_dir):
+    os_module.makedirs(logs_dir)
+
+# Security Settings for Production
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True

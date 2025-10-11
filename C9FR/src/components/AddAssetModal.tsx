@@ -52,7 +52,7 @@ const EXCHANGE_OPTIONS: Record<string, ExchangeOption[]> = {
   ],
 };
 
-export const AddAssetModal: React.FC<AddAssetModalProps> = ({
+const AddAssetModal: React.FC<AddAssetModalProps> = ({
   visible,
   onClose,
   onAssetCreate,
@@ -715,3 +715,5 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 });
+
+export default AddAssetModal;

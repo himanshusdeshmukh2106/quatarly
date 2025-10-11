@@ -37,11 +37,17 @@ class InvestmentSerializer(serializers.ModelSerializer):
         ]
 
     def get_chart_data(self, obj):
-        # Only return chart data for assets that support it
-        if obj.supports_chart_data:
-            chart_data = obj.historical_data.all()[:30]
-            return ChartDataSerializer(chart_data, many=True).data
-        return []
+        """Use prefetched data to avoid N+1 queries"""
+        if not obj.supports_chart_data:
+            return []
+
+        # Use prefetched data if available (set by queryset optimization)
+        chart_data = getattr(obj, 'recent_chart_data', None)
+        if chart_data is None:
+            # Fallback to queryset if not prefetched
+            chart_data = obj.historical_data.order_by('-date')[:30]
+
+        return ChartDataSerializer(chart_data, many=True).data
 
     def get_progress_percentage(self, obj):
         if obj.average_purchase_price > 0:

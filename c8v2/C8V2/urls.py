@@ -16,9 +16,18 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from .health import health_check, readiness_check, liveness_check
 
 urlpatterns = [
+    # Health check endpoints (for monitoring and load balancers)
+    path('health/', health_check, name='health_check'),
+    path('health/ready/', readiness_check, name='readiness_check'),
+    path('health/live/', liveness_check, name='liveness_check'),
+
+    # Admin
     path('admin/', admin.site.urls),
+
+    # API endpoints
     path('api/auth/', include('dj_rest_auth.urls')),
     path('api/auth/registration/', include('dj_rest_auth.registration.urls')),
     path('api/questionnaire/', include('questionnaire.urls')),

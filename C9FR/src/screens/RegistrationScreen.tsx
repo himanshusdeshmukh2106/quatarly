@@ -37,9 +37,20 @@ const RegistrationScreen = ({ navigation }: { navigation: any }) => {
   };
 
   const formatErrorMessage = (errors: any) => {
+    // Handle different error formats
+    if (typeof errors === 'string') {
+      return errors;
+    }
+
+    // Format field-specific errors
     return Object.keys(errors).map(field => {
-      return `${field}: ${errors[field].join(', ')}`;
-    }).join('\n');
+      const fieldName = field === 'password1' ? 'Password' :
+                       field === 'password2' ? 'Confirm Password' :
+                       field.charAt(0).toUpperCase() + field.slice(1);
+
+      const messages = Array.isArray(errors[field]) ? errors[field] : [errors[field]];
+      return `${fieldName}:\n${messages.map(msg => `  • ${msg}`).join('\n')}`;
+    }).join('\n\n');
   }
 
   return (
@@ -73,6 +84,9 @@ const RegistrationScreen = ({ navigation }: { navigation: any }) => {
             value={password}
             onChangeText={setPassword}
         />
+        <Text style={[styles.passwordHint, { color: theme.textMuted }]}>
+          Password must be at least 8 characters and not too common
+        </Text>
         <TextInput
             style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.card }]}
             placeholder="Confirm Password"
@@ -123,6 +137,13 @@ const styles = StyleSheet.create({
       paddingHorizontal: 15,
       marginBottom: 20,
       fontSize: 16,
+    },
+    passwordHint: {
+      fontSize: 12,
+      marginTop: -15,
+      marginBottom: 15,
+      marginLeft: 5,
+      fontStyle: 'italic',
     },
     button: {
       height: 50,

@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // For physical device or iOS simulator, use your computer's IP address
 const API_BASE_URL = __DEV__
   ? 'http://10.0.2.2:8000/api'  // Android emulator
-  : 'http://192.168.1.5:8000/api';
+  : 'http://192.168.1.6:8000/api';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -15,6 +15,47 @@ export const apiClient = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// Add request interceptor for automatic auth token injection
+apiClient.interceptors.request.use(
+  async (config) => {
+    // Skip if Authorization header already set
+    if (config.headers.Authorization) {
+      return config;
+    }
+
+    // Try to get token from AsyncStorage
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      if (token) {
+        config.headers.Authorization = `Token ${token}`;
+      }
+    } catch (error) {
+      console.error('Failed to get auth token:', error);
+    }
+
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor for error handling
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid - clear auth state
+      try {
+        await AsyncStorage.multiRemove(['authToken', 'user', 'onboardingComplete']);
+      } catch (e) {
+        console.error('Failed to clear auth state:', e);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 // We'll need a way to set the auth token.
 // This is a placeholder for now.

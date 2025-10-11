@@ -2,14 +2,16 @@ import React, { useContext, useState, useEffect } from 'react';
 import { View, Text, ScrollView, Image, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
 import { ThemeContext } from '../../context/ThemeContext';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import ProgressBar from '../../components/ProgressBar';
-import AddGoalModal from '../../components/AddGoalModal';
-import AIInsightsDrawer from '../../components/AIInsightsDrawer';
 import { Goal, CreateGoalRequest } from '../../types';
 import { fetchGoals, createGoal } from '../../services/api';
+import { showToast } from '../../utils/toast';
+
+// Import components with proper default imports
+import ProgressBar from '../../components/ProgressBar';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorBoundary from '../../components/ErrorBoundary';
-import { showToast } from '../../utils/toast';
+import AddGoalModal from '../../components/AddGoalModal';
+import AIInsightsDrawer from '../../components/AIInsightsDrawer';
 
 const GoalsScreen: React.FC = () => {
   const { theme } = useContext(ThemeContext);

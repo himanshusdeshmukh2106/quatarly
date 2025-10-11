@@ -9,13 +9,26 @@ import OnboardingScreen from '../screens/OnboardingScreen';
 import WelcomeScreen from '../screens/WelcomeScreen';
 import HomeScreen from '../screens/HomeScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import AssetDetailScreen from '../screens/AssetDetailScreen';
 import { AuthContext } from '../context/AuthContext';
 import { ThemeContext } from '../context/ThemeContext';
 import { apiClient } from '../services/api';
+import { Asset } from '../types';
 
-const AuthStack = createNativeStackNavigator();
-const OnboardingStack = createNativeStackNavigator();
-const AppStack = createNativeStackNavigator();
+// Navigation param types
+export type RootStackParamList = {
+    Welcome: undefined;
+    Login: undefined;
+    Register: undefined;
+    Onboarding: undefined;
+    Home: undefined;
+    Profile: undefined;
+    AssetDetail: { asset: Asset };
+};
+
+const AuthStack = createNativeStackNavigator<RootStackParamList>();
+const OnboardingStack = createNativeStackNavigator<RootStackParamList>();
+const AppStack = createNativeStackNavigator<RootStackParamList>();
 
 const AuthNavigator = () => (
     <AuthStack.Navigator screenOptions={{ headerShown: false }}>
@@ -35,6 +48,7 @@ const AppNavigator = () => (
     <AppStack.Navigator screenOptions={{ headerShown: false }}>
         <AppStack.Screen name="Home" component={HomeScreen} />
         <AppStack.Screen name="Profile" component={ProfileScreen} />
+        <AppStack.Screen name="AssetDetail" component={AssetDetailScreen} />
     </AppStack.Navigator>
 );
 

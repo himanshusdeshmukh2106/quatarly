@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, Suspense } from 'react';
 import {
   View,
   Text,
@@ -16,10 +16,14 @@ import { useAssets } from '../../hooks/useAssets';
 import { AssetCard } from '../../components/AssetCard';
 import { TradableAssetCard } from '../../components/TradableAssetCard';
 import { PhysicalAssetCard } from '../../components/PhysicalAssetCard';
-import { AddAssetModal } from '../../components/AddAssetModal';
-import { AssetInsightsDrawer } from '../../components/AssetInsightsDrawer';
-import { EditAssetModal } from '../../components/EditAssetModal';
-import { AssetActionSheet } from '../../components/AssetActionSheet';
+import LoadingSpinner from '../../components/LoadingSpinner';
+
+// Lazy load modals and drawers to reduce initial bundle size
+// These components use default exports, so we import them directly
+const AddAssetModal = React.lazy(() => import('../../components/AddAssetModal'));
+const AssetInsightsDrawer = React.lazy(() => import('../../components/AssetInsightsDrawer'));
+const EditAssetModal = React.lazy(() => import('../../components/EditAssetModal'));
+const AssetActionSheet = React.lazy(() => import('../../components/AssetActionSheet'));
 
 export const AssetsScreen: React.FC = () => {
   const { theme } = useContext(ThemeContext);
@@ -226,54 +230,62 @@ export const AssetsScreen: React.FC = () => {
 
   const InvestmentCard = ({ investment }: { investment: any; index: number }) => {
     const isNegative = investment.change < 0;
-    const changeColor = isNegative ? '#ef4444' : '#22c55e';
+    const chartColor = isNegative ? '#ef4444' : '#22d3ee'; // Cyan for positive (Perplexity style)
+    const percentageColor = isNegative ? '#ef4444' : '#10b981'; // Green for positive percentage
 
     // Remove animations completely to prevent re-rendering issues
     // Cards will appear instantly without animation
-    
+
     return (
-      <View 
-        key={investment.id} 
+      <View
+        key={investment.id}
         style={styles.exactReplicaCard}
       >
-        {/* Exact Header Layout - Matching Image */}
-        <View style={styles.pixelPerfectHeader}>
-          <View style={styles.pixelPerfectLeft}>
-            <View style={styles.pixelPerfectIcon}>
-              <Text style={styles.pixelPerfectIconText}>{investment.symbol}</Text>
+        {/* Perplexity-Style Header Layout */}
+        <View style={styles.perplexityHeader}>
+          <View style={styles.perplexityLeft}>
+            <View style={styles.perplexityIconFallback}>
+              <Text style={styles.perplexityIconText}>{investment.symbol.substring(0, 2)}</Text>
             </View>
-            <View style={styles.pixelPerfectCompanyInfo}>
-              <Text style={styles.pixelPerfectCompanyName}>
+            <View style={styles.perplexityCompanyInfo}>
+              <Text style={styles.perplexityCompanyName}>
                 {investment.name}
               </Text>
-              <Text style={styles.pixelPerfectSymbol}>{investment.symbol}</Text>
+              <Text style={styles.perplexitySymbol}>{investment.symbol}</Text>
             </View>
           </View>
-          <View style={styles.pixelPerfectRight}>
-            <Text style={styles.pixelPerfectPrice}>
-              ${investment.price.toFixed(2)}
-            </Text>
-            <Text style={[styles.pixelPerfectChange, { color: changeColor }]}>
-              ↓ {Math.abs(investment.changePercent).toFixed(2)}%
-            </Text>
+          <View style={styles.perplexityRight}>
+            <View style={styles.perplexityPriceRow}>
+              <Text style={styles.perplexityPrice}>
+                ${investment.price.toFixed(2)}
+              </Text>
+              <View style={[styles.perplexityChangePill, { backgroundColor: percentageColor + '20' }]}>
+                <Text style={[styles.perplexityChangeIcon, { color: percentageColor }]}>
+                  {isNegative ? '↓' : '↑'}
+                </Text>
+                <Text style={[styles.perplexityChange, { color: percentageColor }]}>
+                  {Math.abs(investment.changePercent).toFixed(2)}%
+                </Text>
+              </View>
+            </View>
           </View>
         </View>
 
-        {/* Chart and Stats Layout - Pixel Perfect */}
-        <View style={styles.pixelPerfectBody}>
+        {/* Chart and Stats Layout - Perplexity Style */}
+        <View style={styles.perplexityBody}>
           {/* Left Side - Chart with Y-axis */}
-          <View style={styles.pixelPerfectChartSection}>
+          <View style={styles.perplexityChartSection}>
             {/* Y-axis labels */}
-            <View style={styles.pixelPerfectYAxis}>
-              <Text style={styles.pixelPerfectYLabel}>350</Text>
-              <Text style={styles.pixelPerfectYLabel}>300</Text>
-              <Text style={styles.pixelPerfectYLabel}>250</Text>
+            <View style={styles.perplexityYAxis}>
+              <Text style={styles.perplexityYLabel}>350</Text>
+              <Text style={styles.perplexityYLabel}>300</Text>
+              <Text style={styles.perplexityYLabel}>250</Text>
             </View>
-            
+
             {/* Chart area */}
-            <View style={styles.pixelPerfectChartContainer}>
-              <View style={styles.pixelPerfectChart}>
-                {/* Simple line chart to match the image exactly */}
+            <View style={styles.perplexityChartContainer}>
+              <View style={styles.perplexityChart}>
+                {/* Simple line chart with Perplexity colors */}
                 <Svg width={140} height={70}>
                   {/* Chart line */}
                   {investment.chartData.map((point: number, idx: number) => {
@@ -282,7 +294,7 @@ export const AssetsScreen: React.FC = () => {
                     const x2 = ((idx + 1) / (investment.chartData.length - 1)) * 140;
                     const y1 = 70 - ((point - 240) / (350 - 240)) * 70;
                     const y2 = 70 - ((investment.chartData[idx + 1] - 240) / (350 - 240)) * 70;
-                    
+
                     return (
                       <Line
                         key={idx}
@@ -290,36 +302,37 @@ export const AssetsScreen: React.FC = () => {
                         y1={y1}
                         x2={x2}
                         y2={y2}
-                        stroke={changeColor}
+                        stroke={chartColor}
                         strokeWidth="2.5"
+                        strokeLinecap="round"
                       />
                     );
                   })}
                 </Svg>
               </View>
-              <Text style={styles.pixelPerfectTime}>{investment.time}</Text>
+              <Text style={styles.perplexityTime}>{new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</Text>
             </View>
           </View>
 
-          {/* Right Side - Stats Exactly Like Image */}
-          <View style={styles.pixelPerfectStatsSection}>
-            <View style={styles.pixelPerfectStatRow}>
-              <Text style={styles.pixelPerfectStatLabel}>Volume</Text>
-              <Text style={styles.pixelPerfectStatValue}>{investment.volume}</Text>
+          {/* Right Side - Stats Perplexity Style */}
+          <View style={styles.perplexityStatsSection}>
+            <View style={styles.perplexityStatRow}>
+              <Text style={styles.perplexityStatLabel}>Volume</Text>
+              <Text style={styles.perplexityStatValue}>{investment.volume}</Text>
             </View>
-            <View style={styles.pixelPerfectStatRow}>
-              <Text style={styles.pixelPerfectStatLabel}>Market Cap</Text>
-              <Text style={styles.pixelPerfectStatValue}>{investment.marketCap}</Text>
+            <View style={styles.perplexityStatRow}>
+              <Text style={styles.perplexityStatLabel}>Market Cap</Text>
+              <Text style={styles.perplexityStatValue}>{investment.marketCap}</Text>
             </View>
-            <View style={styles.pixelPerfectStatRow}>
-              <Text style={styles.pixelPerfectStatLabel}>P/E Ratio</Text>
-              <Text style={styles.pixelPerfectStatValue}>{investment.peRatio}</Text>
+            <View style={styles.perplexityStatRow}>
+              <Text style={styles.perplexityStatLabel}>P/E Ratio</Text>
+              <Text style={styles.perplexityStatValue}>{investment.peRatio}</Text>
             </View>
-            <View style={styles.pixelPerfectStatRow}>
-              <Text style={styles.pixelPerfectStatLabel}>Growth Rate</Text>
+            <View style={styles.perplexityStatRow}>
+              <Text style={styles.perplexityStatLabel}>Growth Rate</Text>
               <Text style={[
-                styles.pixelPerfectStatValue,
-                { color: investment.growthRate && investment.growthRate > 0 ? '#22c55e' : investment.growthRate && investment.growthRate < 0 ? '#ef4444' : '#ffffff' }
+                styles.perplexityStatValue,
+                { color: investment.growthRate && investment.growthRate > 0 ? '#10b981' : investment.growthRate && investment.growthRate < 0 ? '#ef4444' : '#ffffff' }
               ]}>
                 {investment.growthRate ? `${investment.growthRate.toFixed(1)}%` : 'N/A'}
               </Text>
@@ -327,9 +340,9 @@ export const AssetsScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Insight Text - Pixel Perfect */}
-        <View style={styles.pixelPerfectInsightContainer}>
-          <Text style={styles.pixelPerfectInsightText}>
+        {/* Insight Text - Perplexity Style */}
+        <View style={styles.perplexityInsightContainer}>
+          <Text style={styles.perplexityInsightText}>
             {investment.insight}
           </Text>
         </View>
@@ -527,40 +540,48 @@ export const AssetsScreen: React.FC = () => {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {renderContent()}
       
-      <AddAssetModal
-        visible={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        onAssetCreate={createNewAsset}
-        onBulkImport={bulkImportAssets}
-      />
-      
-      <AssetInsightsDrawer
-        visible={selectedAssetForInsights !== null}
-        asset={selectedAssetForInsights}
-        onClose={() => setSelectedAssetForInsights(null)}
-      />
+      <Suspense fallback={<LoadingSpinner />}>
+        <AddAssetModal
+          visible={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          onAssetCreate={createNewAsset}
+          onBulkImport={bulkImportAssets}
+        />
+      </Suspense>
 
-      <AssetActionSheet
-        visible={showActionSheet}
-        onClose={() => {
-          setShowActionSheet(false);
-          setSelectedAssetForAction(null);
-        }}
-        onEdit={() => selectedAssetForAction && handleEditAsset(selectedAssetForAction)}
-        onDelete={() => selectedAssetForAction && handleDeleteAsset(selectedAssetForAction)}
-        assetName={selectedAssetForAction?.name || ''}
-      />
+      <Suspense fallback={<LoadingSpinner />}>
+        <AssetInsightsDrawer
+          visible={selectedAssetForInsights !== null}
+          asset={selectedAssetForInsights}
+          onClose={() => setSelectedAssetForInsights(null)}
+        />
+      </Suspense>
 
-      <EditAssetModal
-        visible={showEditModal}
-        asset={editingAsset}
-        onClose={() => {
-          setShowEditModal(false);
-          setEditingAsset(null);
-        }}
-        onSave={handleSaveAsset}
-        loading={savingAsset}
-      />
+      <Suspense fallback={<LoadingSpinner />}>
+        <AssetActionSheet
+          visible={showActionSheet}
+          onClose={() => {
+            setShowActionSheet(false);
+            setSelectedAssetForAction(null);
+          }}
+          onEdit={() => selectedAssetForAction && handleEditAsset(selectedAssetForAction)}
+          onDelete={() => selectedAssetForAction && handleDeleteAsset(selectedAssetForAction)}
+          assetName={selectedAssetForAction?.name || ''}
+        />
+      </Suspense>
+
+      <Suspense fallback={<LoadingSpinner />}>
+        <EditAssetModal
+          visible={showEditModal}
+          asset={editingAsset}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingAsset(null);
+          }}
+          onSave={handleSaveAsset}
+          loading={savingAsset}
+        />
+      </Suspense>
     </View>
   );
 };
@@ -1016,21 +1037,23 @@ const styles = StyleSheet.create({
     position: 'absolute',
   },
 
-  // Exact Replica Styles to Match Image
+  // Perplexity-Style Card Design
   exactReplicaCard: {
     backgroundColor: '#1a1a1a',
-    borderRadius: 12,
-    marginHorizontal: 20,
-    marginBottom: 20,
-    padding: 16,
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 20,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 8,
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 12,
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
   },
   exactReplicaHeader: {
     flexDirection: 'row',
@@ -1214,132 +1237,161 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Pixel Perfect Styles - Exact Match to Image
-  pixelPerfectHeader: {
+  // Perplexity-Style Placeholder Investment Card Styles
+  perplexityHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 24,
-    paddingHorizontal: 2,
   },
-  pixelPerfectLeft: {
+  perplexityLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-  },
-  pixelPerfectIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: '#374151',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 14,
-  },
-  pixelPerfectIconText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  pixelPerfectCompanyInfo: {
     flex: 1,
     marginRight: 16,
   },
-  pixelPerfectCompanyName: {
-    color: '#ffffff',
-    fontSize: 17,
-    fontWeight: '600',
-    marginBottom: 3,
-    lineHeight: 20,
+  perplexityIconFallback: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: '#dc2626',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  pixelPerfectSymbol: {
-    color: '#9ca3af',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  pixelPerfectRight: {
-    alignItems: 'flex-end',
-    flexDirection: 'row',
-    gap: 16,
-  },
-  pixelPerfectPrice: {
-    color: '#ffffff',
-    fontSize: 20,
+  perplexityIconText: {
+    fontSize: 16,
     fontWeight: '700',
+    color: '#ffffff',
+    letterSpacing: 0.5,
   },
-  pixelPerfectChange: {
-    fontSize: 15,
+  perplexityCompanyInfo: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  perplexityCompanyName: {
+    fontSize: 18,
     fontWeight: '600',
+    color: '#ffffff',
+    marginBottom: 4,
+    letterSpacing: -0.3,
   },
-  pixelPerfectBody: {
+  perplexitySymbol: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#9ca3af',
+    letterSpacing: 0.2,
+  },
+  perplexityRight: {
+    alignItems: 'flex-end',
+  },
+  perplexityPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  perplexityPrice: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#ffffff',
+    letterSpacing: -0.5,
+  },
+  perplexityChangePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  perplexityChangeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  perplexityChangeIcon: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginRight: 2,
+  },
+  perplexityChange: {
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  perplexityBody: {
     flexDirection: 'row',
     marginBottom: 24,
-    alignItems: 'flex-start',
+    minHeight: 100,
   },
-  pixelPerfectChartSection: {
+  perplexityChartSection: {
     flex: 1,
     flexDirection: 'row',
     marginRight: 24,
   },
-  pixelPerfectYAxis: {
-    width: 32,
+  perplexityYAxis: {
+    width: 40,
     justifyContent: 'space-between',
-    height: 70,
     paddingVertical: 8,
-    marginRight: 8,
+    paddingRight: 8,
   },
-  pixelPerfectYLabel: {
-    color: '#6b7280',
+  perplexityYLabel: {
     fontSize: 11,
     fontWeight: '500',
+    color: '#6b7280',
+    textAlign: 'right',
   },
-  pixelPerfectChartContainer: {
+  perplexityChartContainer: {
     flex: 1,
     position: 'relative',
-  },
-  pixelPerfectChart: {
-    height: 70,
     justifyContent: 'center',
   },
-  pixelPerfectTime: {
-    color: '#6b7280',
-    fontSize: 11,
-    fontWeight: '500',
+  perplexityChart: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  perplexityTime: {
     position: 'absolute',
     bottom: -18,
     left: 0,
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#6b7280',
   },
-  pixelPerfectStatsSection: {
-    width: 110,
+  perplexityStatsSection: {
+    width: 180,
     justifyContent: 'space-between',
   },
-  pixelPerfectStatRow: {
+  perplexityStatRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
-  pixelPerfectStatLabel: {
-    color: '#9ca3af',
-    fontSize: 13,
+  perplexityStatLabel: {
+    fontSize: 12,
     fontWeight: '500',
+    color: '#9ca3af',
+    letterSpacing: 0.1,
+    flex: 1,
   },
-  pixelPerfectStatValue: {
-    color: '#ffffff',
+  perplexityStatValue: {
     fontSize: 13,
     fontWeight: '600',
+    color: '#ffffff',
+    letterSpacing: -0.2,
     textAlign: 'right',
   },
-  pixelPerfectInsightContainer: {
+  perplexityInsightContainer: {
     paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: '#374151',
+    borderTopColor: '#2a2a2a',
   },
-  pixelPerfectInsightText: {
-    color: '#9ca3af',
+  perplexityInsightText: {
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '400',
+    color: '#9ca3af',
+    letterSpacing: 0.1,
   },
 
 });

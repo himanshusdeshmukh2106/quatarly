@@ -1,22 +1,23 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { 
-  Asset, 
- 
-  AssetType, 
-  CreateAssetRequest, 
+import {
+  Asset,
+
+  AssetType,
+  CreateAssetRequest,
   ParsedAssetData,
-  MarketStatus 
+  MarketStatus
 } from '../types';
-import { 
-  fetchAssets, 
-  createAsset, 
-  updateAsset, 
-  deleteAsset, 
- 
+import {
+  fetchAssets,
+  createAsset,
+  updateAsset,
+  deleteAsset,
+
 } from '../services/api';
 import { getErrorMessage, withRetry } from '../utils/networkUtils';
+import { debounce } from '../utils/debounce';
 import InvestmentCache from '../services/investmentCache';
 import PriceUpdateService from '../services/priceUpdateService';
 
@@ -116,13 +117,14 @@ export const useAssets = (): UseAssetsReturn => {
     }
   }, [updateState, getAuthToken]);
 
-  const refreshAssets = useCallback(async () => {
+  // Debounced refresh to prevent multiple rapid calls
+  const refreshAssetsInternal = useCallback(async () => {
     updateState({ refreshing: true });
-    
+
     try {
       // Force price update through the service
       await PriceUpdateService.forceUpdatePrices();
-      
+
       // Then reload assets to get the latest data
       await loadAssets(false);
     } catch (error) {
@@ -132,6 +134,12 @@ export const useAssets = (): UseAssetsReturn => {
       updateState({ refreshing: false });
     }
   }, [updateState, loadAssets]);
+
+  // Debounce the refresh function to prevent rapid successive calls
+  const refreshAssets = useCallback(
+    debounce(refreshAssetsInternal, 1000),
+    [refreshAssetsInternal]
+  );
 
   const createNewAsset = useCallback(async (assetData: CreateAssetRequest) => {
     try {
@@ -279,25 +287,28 @@ ${invalidCount} assets were skipped due to zero quantity or price.`;
 
   // Auto-refresh assets on app focus or at intervals
   useEffect(() => {
+    const abortController = new AbortController();
+
     loadAssets();
-    
+
     // Optimize cache on app launch
     InvestmentCache.optimizeMemory();
-    
+
     // Initialize price update service
     const handlePriceUpdate = (updatedAssets: Asset[]) => {
       updateState({
         assets: updatedAssets,
         lastUpdated: new Date().toISOString(),
       });
-      
+
       // Cache the updated assets
       InvestmentCache.cacheAssets(updatedAssets);
     };
-    
+
     PriceUpdateService.initialize(handlePriceUpdate);
-    
+
     return () => {
+      abortController.abort();
       PriceUpdateService.destroy();
     };
   }, [loadAssets, updateState]);
