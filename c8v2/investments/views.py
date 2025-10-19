@@ -48,10 +48,28 @@ class InvestmentViewSet(viewsets.ModelViewSet):
     pagination_class = None  # Disable pagination by default, enable for large portfolios
     
     def get_queryset(self):
-        queryset = Investment.objects.filter(user=self.request.user).select_related('user')
+        """Optimized queryset with prefetching to avoid N+1 queries"""
+        from django.db.models import Prefetch
+
+        queryset = Investment.objects.filter(user=self.request.user)\
+            .select_related('user')\
+            .prefetch_related(
+                Prefetch(
+                    'historical_data',
+                    queryset=ChartData.objects.order_by('-date')[:30],
+                    to_attr='recent_chart_data'
+                ),
+                Prefetch(
+                    'alerts',
+                    queryset=PriceAlert.objects.filter(is_active=True),
+                    to_attr='active_alerts'
+                )
+            )
+
         asset_type = self.request.query_params.get('asset_type', None)
         if asset_type:
             queryset = queryset.filter(asset_type=asset_type)
+
         return queryset.order_by('-created_at')
     
     def get_serializer_class(self):

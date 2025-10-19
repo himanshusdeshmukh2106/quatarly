@@ -1,72 +1,39 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, RefreshControl } from 'react-native';
 import { ThemeContext } from '../../context/ThemeContext';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Opportunity } from '../../types';
-import { fetchOpportunities, refreshOpportunities } from '../../services/api';
+import { useOpportunities } from '../../hooks/useOpportunities';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import OpportunityCard from '../../components/OpportunityCard';
 import OpportunityInsightsDrawer from '../../components/OpportunityInsightsDrawer';
-import { showToast } from '../../utils/toast';
 
 const OpportunitiesScreen: React.FC = () => {
   const { theme } = useContext(ThemeContext);
   
-  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  // Use the useOpportunities hook for state management
+  const { opportunities, loading, error, refreshOpportunities: refreshOps } = useOpportunities();
+  
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [showInsightsDrawer, setShowInsightsDrawer] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const loadOpportunities = async () => {
-    try {
-      setError(null);
-      const opportunitiesData = await fetchOpportunities();
-      setOpportunities(opportunitiesData);
-    } catch (error) {
-      console.error('Failed to load opportunities:', error);
-      setError('Failed to load opportunities. Please check your connection and try again.');
-      showToast.error('Failed to load opportunities. Please check your connection and try again.');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    try {
-      setError(null);
-      
-      // Synchronously refresh opportunities
-      const refreshedOpportunities = await refreshOpportunities();
-      
-      if (refreshedOpportunities && refreshedOpportunities.length > 0) {
-        setOpportunities(refreshedOpportunities);
-      } else {
-        setOpportunities([]);
-      }
-      
-    } catch (error) {
-      console.error('Failed to refresh opportunities:', error);
-      setError('Failed to refresh opportunities. Please try again.');
-      showToast.error('Failed to refresh opportunities. Please try again.');
-    } finally {
-      setRefreshing(false);
-    }
-  };
+    await refreshOps();
+    setRefreshing(false);
+  }, [refreshOps]);
 
-  const handleInsightsPress = (opportunity: Opportunity) => {
+  const handleInsightsPress = useCallback((opportunity: Opportunity) => {
     setSelectedOpportunity(opportunity);
     setShowInsightsDrawer(true);
-  };
+  }, []);
 
-  const handleInsightsClose = () => {
+  const handleInsightsClose = useCallback(() => {
     setShowInsightsDrawer(false);
     setSelectedOpportunity(null);
-  };
+  }, []);
 
   // const groupOpportunitiesByCategory = () => {
   //   const grouped: Record<string, Opportunity[]> = {};
@@ -125,12 +92,6 @@ const OpportunitiesScreen: React.FC = () => {
   //   };
   //   return iconMap[category] || 'lightbulb';
   // };
-
-
-
-  useEffect(() => {
-    loadOpportunities();
-  }, []);
 
   if (loading) {
     return <LoadingSpinner message="Discovering opportunities..." />;

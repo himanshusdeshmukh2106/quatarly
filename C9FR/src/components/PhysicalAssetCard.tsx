@@ -1,335 +1,358 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
 } from 'react-native';
-import Svg, { Line } from 'react-native-svg';
 import { PhysicalAsset } from '../types';
+import { useStyles } from '../hooks/useStyles';
 
 interface PhysicalAssetCardProps {
   asset: PhysicalAsset;
-  onPress?: () => void;
-  onLongPress?: () => void;
-  onInsightsPress?: () => void;
+  onPress?: (asset: PhysicalAsset) => void;
+  onLongPress?: (asset: PhysicalAsset) => void;
+  onInsightsPress?: (asset: PhysicalAsset) => void;
   onUpdateValue?: (assetId: string, newValue: number) => void;
   style?: any;
+  testID?: string;
 }
 
 export const PhysicalAssetCard: React.FC<PhysicalAssetCardProps> = ({
   asset,
   onPress,
   onLongPress,
+  onInsightsPress,
   style,
+  testID,
 }) => {
-  const formatCurrency = (amount: number) => {
-    return `₹${amount.toFixed(2)}`;
-  };
+  const styles = useStyles((theme) => ({
+    card: {
+      backgroundColor: theme.card,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 12,
+      shadowColor: theme.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    headerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    logoFallback: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: theme.warning,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
+    },
+    logoText: {
+      color: '#FFFFFF',
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    headerInfo: {
+      flex: 1,
+    },
+    symbol: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.text,
+      marginBottom: 2,
+    },
+    name: {
+      fontSize: 14,
+      color: theme.textMuted,
+    },
+    badges: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    badge: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 4,
+    },
+    badgeBuy: {
+      backgroundColor: theme.success + '20',
+    },
+    badgeHold: {
+      backgroundColor: theme.warning + '20',
+    },
+    badgeSell: {
+      backgroundColor: theme.error + '20',
+    },
+    badgeText: {
+      fontSize: 10,
+      fontWeight: '700',
+    },
+    badgeTextBuy: {
+      color: theme.success,
+    },
+    badgeTextHold: {
+      color: theme.warning,
+    },
+    badgeTextSell: {
+      color: theme.error,
+    },
+    riskBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 4,
+      backgroundColor: theme.textMuted + '20',
+    },
+    riskText: {
+      fontSize: 10,
+      fontWeight: '600',
+      color: theme.textMuted,
+    },
+    content: {
+      marginBottom: 12,
+    },
+    row: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 8,
+    },
+    label: {
+      fontSize: 13,
+      color: theme.textMuted,
+    },
+    value: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.text,
+    },
+    totalValue: {
+      fontSize: 24,
+      fontWeight: '700',
+      color: theme.text,
+      marginBottom: 4,
+    },
+    quantity: {
+      fontSize: 14,
+      color: theme.textMuted,
+      marginBottom: 12,
+    },
+    metricsRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 12,
+    },
+    metric: {
+      flex: 1,
+    },
+    metricLabel: {
+      fontSize: 11,
+      color: theme.textMuted,
+      marginBottom: 4,
+    },
+    metricValue: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.text,
+    },
+    positive: {
+      color: theme.success,
+    },
+    negative: {
+      color: theme.error,
+    },
+    neutral: {
+      color: theme.textMuted,
+    },
+    physicalInfo: {
+      marginTop: 8,
+      paddingTop: 8,
+      borderTopWidth: 1,
+      borderTopColor: theme.borderMuted,
+    },
+    physicalRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 4,
+    },
+    physicalLabel: {
+      fontSize: 12,
+      color: theme.textMuted,
+    },
+    physicalValue: {
+      fontSize: 12,
+      fontWeight: '500',
+      color: theme.text,
+    },
+    insightsButton: {
+      marginTop: 12,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      backgroundColor: theme.primary + '10',
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+    insightsButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.primary,
+    },
+  }));
 
-  const getPerformanceColor = (value: number) => {
-    if (value > 0) return '#22c55e'; // Green for positive
-    if (value < 0) return '#ef4444'; // Red for negative
-    return '#6B7280'; // Gray for neutral
-  };
+  // Format currency with thousands separators
+  const formatCurrency = useCallback((amount: number): string => {
+    const formatted = Math.abs(amount).toLocaleString('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+    return `₹${formatted}`;
+  }, []);
 
-  // Generate mock chart data for visual consistency
-  const generateChartData = (basePrice: number, isPositive: boolean) => {
-    const data = [];
-    let currentPrice = basePrice * 1.2; // Start higher for downward trend
-    
-    for (let i = 0; i < 12; i++) {
-      data.push(currentPrice);
-      // Create a general downward trend with some variation
-      const change = isPositive ? 
-        (Math.random() - 0.3) * (basePrice * 0.02) : // Slight upward bias for positive
-        (Math.random() - 0.7) * (basePrice * 0.02);   // Downward bias for negative
-      currentPrice += change;
-    }
-    
-    // Ensure the last point matches the current price
-    data[data.length - 1] = basePrice;
-    return data;
-  };
+  // Format change with sign and percentage
+  const formatChange = useCallback((amount: number, percent: number): string => {
+    const sign = amount >= 0 ? '+' : '';
+    return `₹${Math.abs(amount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} (${sign}${percent.toFixed(2)}%)`;
+  }, []);
 
-  // Generate AI insight based on asset performance
-  const generateInsight = (asset: PhysicalAsset) => {
-    const isPositive = asset.totalGainLoss >= 0;
-    const assetTypeText = asset.assetType === 'gold' ? 'gold holdings' :
-                        asset.assetType === 'silver' ? 'silver holdings' :
-                        `${asset.assetType} holdings`;
-    
-    if (isPositive) {
-      return `${asset.name} ${assetTypeText} showed positive performance with strong commodity fundamentals and favorable market conditions supporting continued value appreciation in the current economic environment.`;
-    } else {
-      return `${asset.name} ${assetTypeText} experienced some volatility due to market conditions and commodity-specific factors, but maintains solid underlying value with potential for recovery in the medium term.`;
-    }
-  };
+  // Get color based on value
+  const getValueColor = useCallback((value: number) => {
+    if (value > 0) return styles.positive;
+    if (value < 0) return styles.negative;
+    return styles.neutral;
+  }, [styles]);
 
-  const currentPrice = asset.currentMarketPrice || asset.purchasePrice;
-  const change = asset.totalGainLoss || 0;
-  const changePercent = asset.totalGainLossPercent || 0;
-  const isNegative = change < 0;
-  const changeColor = getPerformanceColor(change);
-  
-  // Generate symbol from asset name
-  const symbol = asset.name.split(' ').map(word => word.charAt(0)).join('').toUpperCase().substring(0, 2);
-  const chartData = generateChartData(currentPrice, change >= 0);
+  // Event handlers with useCallback
+  const handlePress = useCallback(() => {
+    onPress?.(asset);
+  }, [onPress, asset]);
 
-  // Mock stats for physical assets
-  const getVolume = () => {
-    const baseVolume = Math.floor(asset.totalValue / 1000);
-    return `${(baseVolume / 1000).toFixed(1)}K`;
-  };
+  const handleLongPress = useCallback(() => {
+    onLongPress?.(asset);
+  }, [onLongPress, asset]);
 
-  const getMarketCap = () => {
-    const baseCap = asset.totalValue * 50; // Physical assets have smaller "market caps"
-    if (baseCap > 1000000000) {
-      return `${(baseCap / 1000000000).toFixed(1)}B`;
-    }
-    return `${(baseCap / 1000000).toFixed(1)}M`;
-  };
+  const handleInsightsPress = useCallback(() => {
+    onInsightsPress?.(asset);
+  }, [onInsightsPress, asset]);
 
   return (
     <TouchableOpacity
-      style={[styles.exactReplicaCard, style]}
-      onPress={onPress}
-      onLongPress={onLongPress}
+      style={[styles.card, style]}
+      onPress={handlePress}
+      onLongPress={handleLongPress}
       activeOpacity={0.7}
+      testID={testID}
+      accessibilityLabel={`${asset.name} physical asset card`}
+      accessibilityHint="Double tap to view asset details, long press for options"
+      accessibilityRole="button"
     >
-      {/* Exact Header Layout - Matching Placeholder Cards */}
-      <View style={styles.pixelPerfectHeader}>
-        <View style={styles.pixelPerfectLeft}>
-          <View style={styles.pixelPerfectIcon}>
-            <Text style={styles.pixelPerfectIconText}>{symbol}</Text>
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <View style={styles.logoFallback}>
+            <Text style={styles.logoText}>{asset.assetType.substring(0, 2).toUpperCase()}</Text>
           </View>
-          <View style={styles.pixelPerfectCompanyInfo}>
-            <Text style={styles.pixelPerfectCompanyName} numberOfLines={1}>
-              {asset.name}
-            </Text>
-            <Text style={styles.pixelPerfectSymbol}>{asset.quantity} {asset.unit}</Text>
+          <View style={styles.headerInfo}>
+            <Text style={styles.symbol}>{asset.name}</Text>
+            <Text style={styles.name}>{asset.assetType.toUpperCase()}</Text>
           </View>
         </View>
-        <View style={styles.pixelPerfectRight}>
-          <Text style={styles.pixelPerfectPrice}>
-            {formatCurrency(currentPrice)}
-          </Text>
-          <Text style={[styles.pixelPerfectChange, { color: changeColor }]}>
-            {isNegative ? '↓' : '↑'} {Math.abs(changePercent).toFixed(2)}%
-          </Text>
-        </View>
-      </View>
-
-      {/* Chart and Stats Layout - Pixel Perfect */}
-      <View style={styles.pixelPerfectBody}>
-        {/* Left Side - Chart with Y-axis */}
-        <View style={styles.pixelPerfectChartSection}>
-          {/* Y-axis labels */}
-          <View style={styles.pixelPerfectYAxis}>
-            <Text style={styles.pixelPerfectYLabel}>{Math.round(currentPrice * 1.4)}</Text>
-            <Text style={styles.pixelPerfectYLabel}>{Math.round(currentPrice * 1.2)}</Text>
-            <Text style={styles.pixelPerfectYLabel}>{Math.round(currentPrice)}</Text>
-          </View>
-          
-          {/* Chart area */}
-          <View style={styles.pixelPerfectChartContainer}>
-            <View style={styles.pixelPerfectChart}>
-              {/* Simple line chart to match the image exactly */}
-              <Svg width={140} height={70}>
-                {/* Chart line */}
-                {chartData.map((point: number, idx: number) => {
-                  if (idx === chartData.length - 1) return null;
-                  const x1 = (idx / (chartData.length - 1)) * 140;
-                  const x2 = ((idx + 1) / (chartData.length - 1)) * 140;
-                  const minPrice = Math.min(...chartData);
-                  const maxPrice = Math.max(...chartData);
-                  const priceRange = maxPrice - minPrice || 1;
-                  const y1 = 70 - ((point - minPrice) / priceRange) * 70;
-                  const y2 = 70 - ((chartData[idx + 1] - minPrice) / priceRange) * 70;
-                  
-                  return (
-                    <Line
-                      key={idx}
-                      x1={x1}
-                      y1={y1}
-                      x2={x2}
-                      y2={y2}
-                      stroke={changeColor}
-                      strokeWidth="2.5"
-                    />
-                  );
-                })}
-              </Svg>
+        <View style={styles.badges}>
+          {asset.recommendation && (
+            <View style={[
+              styles.badge,
+              asset.recommendation === 'buy' ? styles.badgeBuy :
+              asset.recommendation === 'hold' ? styles.badgeHold :
+              styles.badgeSell
+            ]}>
+              <Text style={[
+                styles.badgeText,
+                asset.recommendation === 'buy' ? styles.badgeTextBuy :
+                asset.recommendation === 'hold' ? styles.badgeTextHold :
+                styles.badgeTextSell
+              ]}>
+                {asset.recommendation.toUpperCase()}
+              </Text>
             </View>
-            <Text style={styles.pixelPerfectTime}>6:00 PM</Text>
-          </View>
-        </View>
-
-        {/* Right Side - Stats Exactly Like Placeholder Cards */}
-        <View style={styles.pixelPerfectStatsSection}>
-          <View style={styles.pixelPerfectStatRow}>
-            <Text style={styles.pixelPerfectStatLabel}>Volume</Text>
-            <Text style={styles.pixelPerfectStatValue}>{getVolume()}</Text>
-          </View>
-          <View style={styles.pixelPerfectStatRow}>
-            <Text style={styles.pixelPerfectStatLabel}>Market Cap</Text>
-            <Text style={styles.pixelPerfectStatValue}>{getMarketCap()}</Text>
-          </View>
-          <View style={styles.pixelPerfectStatRow}>
-            <Text style={styles.pixelPerfectStatLabel}>Purchase Price</Text>
-            <Text style={styles.pixelPerfectStatValue}>₹{asset.purchasePrice.toFixed(2)}</Text>
-          </View>
-          <View style={styles.pixelPerfectStatRow}>
-            <Text style={styles.pixelPerfectStatLabel}>Quantity</Text>
-            <Text style={styles.pixelPerfectStatValue}>{asset.quantity} {asset.unit}</Text>
-          </View>
+          )}
+          {asset.riskLevel && (
+            <View style={styles.riskBadge}>
+              <Text style={styles.riskText}>{asset.riskLevel.toUpperCase()} RISK</Text>
+            </View>
+          )}
         </View>
       </View>
 
-      {/* Insight Text - Pixel Perfect */}
-      <View style={styles.pixelPerfectInsightContainer}>
-        <Text style={styles.pixelPerfectInsightText}>
-          {generateInsight(asset)}
-        </Text>
+      <View style={styles.content}>
+        <Text style={styles.totalValue}>{formatCurrency(asset.totalValue)}</Text>
+        <Text style={styles.quantity}>{asset.quantity} {asset.unit}</Text>
+
+        <View style={styles.metricsRow}>
+          <View style={styles.metric}>
+            <Text style={styles.metricLabel}>Purchase Price</Text>
+            <Text style={styles.metricValue}>
+              {formatCurrency(asset.purchasePrice)}/{asset.unit}
+            </Text>
+          </View>
+          <View style={styles.metric}>
+            <Text style={styles.metricLabel}>Market Price</Text>
+            <Text style={styles.metricValue}>
+              {formatCurrency(asset.currentMarketPrice || asset.purchasePrice)}/{asset.unit}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.row}>
+          <Text style={styles.label}>Total P&L</Text>
+          <Text style={[styles.value, getValueColor(asset.totalGainLoss || 0)]}>
+            {formatChange(asset.totalGainLoss || 0, asset.totalGainLossPercent || 0)}
+          </Text>
+        </View>
+
+        {asset.manuallyUpdated && (
+          <View style={styles.physicalInfo}>
+            <View style={styles.physicalRow}>
+              <Text style={styles.physicalLabel}>Manually updated</Text>
+            </View>
+          </View>
+        )}
       </View>
+
+      {asset.aiAnalysis && (
+        <TouchableOpacity
+          style={styles.insightsButton}
+          onPress={handleInsightsPress}
+          accessibilityLabel="AI Insights"
+          accessibilityHint="View AI analysis for this asset"
+          accessibilityRole="button"
+        >
+          <Text style={styles.insightsButtonText}>View AI Insights</Text>
+        </TouchableOpacity>
+      )}
     </TouchableOpacity>
   );
 };
 
-const styles = StyleSheet.create({
-  // Exact Replica Styles to Match Placeholder Investment Cards
-  exactReplicaCard: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
-    marginHorizontal: 20,
-    marginBottom: 20,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  pixelPerfectHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  pixelPerfectLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  pixelPerfectIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 6,
-    backgroundColor: '#374151',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  pixelPerfectIconText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#ffffff',
-  },
-  pixelPerfectCompanyInfo: {
-    flex: 1,
-  },
-  pixelPerfectCompanyName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff',
-    marginBottom: 2,
-  },
-  pixelPerfectSymbol: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#9ca3af',
-  },
-  pixelPerfectRight: {
-    alignItems: 'flex-end',
-  },
-  pixelPerfectPrice: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#ffffff',
-    marginBottom: 2,
-  },
-  pixelPerfectChange: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  pixelPerfectBody: {
-    flexDirection: 'row',
-    marginBottom: 20,
-  },
-  pixelPerfectChartSection: {
-    flex: 1,
-    flexDirection: 'row',
-    height: 100,
-    marginRight: 20,
-  },
-  pixelPerfectYAxis: {
-    width: 30,
-    justifyContent: 'space-between',
-    paddingVertical: 5,
-  },
-  pixelPerfectYLabel: {
-    fontSize: 10,
-    fontWeight: '500',
-    color: '#9ca3af',
-  },
-  pixelPerfectChartContainer: {
-    flex: 1,
-    position: 'relative',
-  },
-  pixelPerfectChart: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  pixelPerfectTime: {
-    position: 'absolute',
-    bottom: -15,
-    left: 4,
-    fontSize: 10,
-    fontWeight: '500',
-    color: '#9ca3af',
-  },
-  pixelPerfectStatsSection: {
-    width: 120,
-    justifyContent: 'space-between',
-  },
-  pixelPerfectStatRow: {
-    marginBottom: 8,
-  },
-  pixelPerfectStatLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#9ca3af',
-    marginBottom: 2,
-  },
-  pixelPerfectStatValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#ffffff',
-  },
-  pixelPerfectInsightContainer: {
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#374151',
-  },
-  pixelPerfectInsightText: {
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: '400',
-    color: '#d1d5db',
-  },
-});
+// Memoize the component to prevent unnecessary re-renders
+const MemoizedPhysicalAssetCard = React.memo<PhysicalAssetCardProps>(
+  PhysicalAssetCard,
+  (prevProps, nextProps) => {
+    return (
+      prevProps.asset.id === nextProps.asset.id &&
+      prevProps.asset.totalValue === nextProps.asset.totalValue &&
+      prevProps.asset.totalGainLoss === nextProps.asset.totalGainLoss &&
+      prevProps.asset.currentMarketPrice === nextProps.asset.currentMarketPrice &&
+      prevProps.asset.lastUpdated === nextProps.asset.lastUpdated
+    );
+  }
+);
 
-export default PhysicalAssetCard;
+export default MemoizedPhysicalAssetCard;

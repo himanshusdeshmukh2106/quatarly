@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from dj_rest_auth.serializers import LoginSerializer
+from dj_rest_auth.registration.serializers import RegisterSerializer
 from .models import CustomUser
 
 class CustomUserDetailsSerializer(serializers.ModelSerializer):
@@ -14,4 +15,21 @@ class CustomLoginSerializer(LoginSerializer):
     """
     Custom serializer for the login view to add user details to the response.
     """
-    user = CustomUserDetailsSerializer(read_only=True) 
+    user = CustomUserDetailsSerializer(read_only=True)
+
+class CustomRegisterSerializer(RegisterSerializer):
+    """
+    Custom registration serializer that includes user details in the response.
+    """
+    def get_cleaned_data(self):
+        """
+        Override to ensure all required fields are properly handled.
+        """
+        data = super().get_cleaned_data()
+        return data
+
+    def custom_signup(self, request, user):
+        """
+        Custom signup logic if needed.
+        """
+        pass

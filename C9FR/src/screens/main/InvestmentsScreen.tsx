@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, Suspense } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Animated } from 'react-native';
 import { ThemeContext } from '../../context/ThemeContext';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -8,9 +8,11 @@ import { Investment, ChartTouchData, MarketStatus, CreateInvestmentRequest } fro
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { InvestmentCard } from '../../components/InvestmentCard';
+import { showToast } from '../../utils/toast';
+
+// Import components directly for now (will re-enable lazy loading after fixing parsing error)
 import { InvestmentInsightsDrawer } from '../../components/InvestmentInsightsDrawer';
 import { AddInvestmentModal } from '../../components/AddInvestmentModal';
-import { showToast } from '../../utils/toast';
 
 const InvestmentsScreen: React.FC = () => {
   const { theme } = useContext(ThemeContext);
@@ -691,7 +693,7 @@ const InvestmentsScreen: React.FC = () => {
       />
     </ErrorBoundary>
   );
-};
+}; // End of InvestmentsScreen component
 
 const styles = StyleSheet.create({
   exactHeader: {

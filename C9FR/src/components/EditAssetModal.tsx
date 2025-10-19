@@ -21,7 +21,7 @@ interface EditAssetModalProps {
   loading?: boolean;
 }
 
-export const EditAssetModal: React.FC<EditAssetModalProps> = ({
+const EditAssetModal: React.FC<EditAssetModalProps> = ({
   visible,
   asset,
   onClose,
