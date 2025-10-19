@@ -1,7 +1,10 @@
 from django.urls import path
-from . import views
+from . import compatibility_views
 
+# Backward compatible endpoints using NEW enhanced system under the hood
 urlpatterns = [
-    path('', views.OpportunitiesListView.as_view(), name='opportunities-list'),
-    path('refresh/', views.refresh_opportunities, name='opportunities-refresh'),
+    # Main endpoints (frontend calls these)
+    path('', compatibility_views.list_opportunities, name='opportunities-list'),
+    path('refresh/', compatibility_views.refresh_opportunities, name='opportunities-refresh'),
+    path('<int:pk>/', compatibility_views.opportunity_detail, name='opportunity-detail'),
 ]

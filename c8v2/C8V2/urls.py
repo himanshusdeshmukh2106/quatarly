@@ -35,6 +35,10 @@ urlpatterns = [
     path('api/sms/', include('sms.urls')),
     path('api/email/', include('email_reader.urls')),
     path('api/opportunities/', include('opportunities.urls')),
+    
+    # Enhanced opportunities system (Serper + Gemini Flash)
+    path('api/v2/', include('opportunities.enhanced_urls')),
+    
     path('api/', include('goals.urls')),
     path('api/', include('investments.urls')),
 ]
