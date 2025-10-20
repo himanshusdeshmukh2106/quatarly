@@ -2,6 +2,7 @@ import React, { useState, useContext } from 'react';
 import { StyleSheet, useWindowDimensions, Text, View, TouchableOpacity, StatusBar } from 'react-native';
 import { TabView, SceneMap } from 'react-native-tab-view';
 import { ThemeContext } from '../context/ThemeContext';
+import { Typography } from '../styles/designSystem';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 // import { useNavigation } from '@react-navigation/native';
 // import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -9,7 +10,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import GoalsScreen from './main/GoalsScreen';
 import DebtScreen from './main/DebtScreen';
 import ExpensesScreen from './main/ExpensesScreen';
-import { AssetsScreen } from './main/AssetsScreen';
+import AssetsScreenFinal from './main/AssetsScreenFinal';
 import OpportunitiesScreen from './main/OpportunitiesScreen';
 import ProfileModal from '../components/ProfileModal';
 import ErrorBoundary from '../components/ErrorBoundary';
@@ -20,7 +21,7 @@ const renderScene = SceneMap({
   expenses: ExpensesScreen,
   investments: () => (
     <ErrorBoundary>
-      <AssetsScreen />
+      <AssetsScreenFinal />
     </ErrorBoundary>
   ),
   opportunities: OpportunitiesScreen,
@@ -158,9 +159,10 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     headerTitle: {
+        fontFamily: Typography.fontFamily.heading,
         color: 'white',
         fontSize: 24,
-        fontWeight: '700',
+        // fontWeight removed - bold is in the font file itself
         letterSpacing: 0.5,
         textShadowColor: 'rgba(0, 0, 0, 0.2)',
         textShadowOffset: { width: 0, height: 1 },
