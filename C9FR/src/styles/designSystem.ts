@@ -99,8 +99,13 @@ export const Colors = {
 export const Typography = {
   // Font Families
   fontFamily: {
-    primary: 'System', // iOS: SF Pro, Android: Roboto
-    mono: 'Menlo', // For numbers and data
+    heading: 'Space Grotesk Bold', // For all headings - ACTUAL internal name
+    body: 'IBM Plex Sans Regular', // Primary body text - ACTUAL internal name
+    bodyAlt: 'Inter 24pt Regular', // Alternative body text - ACTUAL internal name
+    mono: 'IBM Plex Mono Regular', // Financial data, prices - ACTUAL internal name
+    
+    // Deprecated - keeping for backwards compatibility
+    primary: 'IBM Plex Sans Regular',
   },
 
   // Font Sizes

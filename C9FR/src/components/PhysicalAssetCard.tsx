@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { PhysicalAsset } from '../types';
 import { useStyles } from '../hooks/useStyles';
+import { Typography } from '../styles/designSystem';
 
 interface PhysicalAssetCardProps {
   asset: PhysicalAsset;
@@ -60,6 +61,7 @@ export const PhysicalAssetCard: React.FC<PhysicalAssetCardProps> = ({
       marginRight: 12,
     },
     logoText: {
+      fontFamily: Typography.fontFamily.heading,
       color: '#FFFFFF',
       fontSize: 16,
       fontWeight: '600',
@@ -68,6 +70,7 @@ export const PhysicalAssetCard: React.FC<PhysicalAssetCardProps> = ({
       flex: 1,
     },
     symbol: {
+      fontFamily: Typography.fontFamily.heading,
       fontSize: 18,
       fontWeight: '700',
       color: theme.text,
@@ -132,11 +135,13 @@ export const PhysicalAssetCard: React.FC<PhysicalAssetCardProps> = ({
       color: theme.textMuted,
     },
     value: {
+      fontFamily: Typography.fontFamily.mono,
       fontSize: 13,
       fontWeight: '600',
       color: theme.text,
     },
     totalValue: {
+      fontFamily: Typography.fontFamily.mono,
       fontSize: 24,
       fontWeight: '700',
       color: theme.text,
@@ -156,11 +161,12 @@ export const PhysicalAssetCard: React.FC<PhysicalAssetCardProps> = ({
       flex: 1,
     },
     metricLabel: {
-      fontSize: 11,
+      fontSize: 10,
       color: theme.textMuted,
       marginBottom: 4,
     },
     metricValue: {
+      fontFamily: Typography.fontFamily.mono,
       fontSize: 14,
       fontWeight: '600',
       color: theme.text,
@@ -297,14 +303,14 @@ export const PhysicalAssetCard: React.FC<PhysicalAssetCardProps> = ({
 
         <View style={styles.metricsRow}>
           <View style={styles.metric}>
-            <Text style={styles.metricLabel}>Purchase Price</Text>
-            <Text style={styles.metricValue}>
+            <Text style={styles.metricLabel} numberOfLines={1}>Purchase Price</Text>
+            <Text style={styles.metricValue} numberOfLines={1}>
               {formatCurrency(asset.purchasePrice)}/{asset.unit}
             </Text>
           </View>
           <View style={styles.metric}>
-            <Text style={styles.metricLabel}>Market Price</Text>
-            <Text style={styles.metricValue}>
+            <Text style={styles.metricLabel} numberOfLines={1}>Market Price</Text>
+            <Text style={styles.metricValue} numberOfLines={1}>
               {formatCurrency(asset.currentMarketPrice || asset.purchasePrice)}/{asset.unit}
             </Text>
           </View>

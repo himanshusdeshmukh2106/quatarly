@@ -36,7 +36,7 @@ if not DEBUG and SECRET_KEY.startswith('django-insecure'):
 # Parse ALLOWED_HOSTS from environment variable
 ALLOWED_HOSTS = os.getenv(
     'ALLOWED_HOSTS',
-    '192.168.43.145,localhost,127.0.0.1,10.110.219.229,10.20.18.55,192.168.1.2,10.0.2.2,192.168.1.9,192.168.1.5'
+    '192.168.43.145,localhost,127.0.0.1,10.110.219.229,10.20.18.55,192.168.1.2,10.0.2.2,192.168.1.9,192.168.1.5,192.168.1.100'
 ).split(',')
 ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS]
 

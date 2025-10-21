@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import { TradableAsset } from '../types';
 import { useStyles } from '../hooks/useStyles';
+import { Typography } from '../styles/designSystem';
 
 interface TradableAssetCardProps {
   asset: TradableAsset;
@@ -66,6 +67,7 @@ export const TradableAssetCard: React.FC<TradableAssetCardProps> = ({
       marginRight: 12,
     },
     logoText: {
+      fontFamily: Typography.fontFamily.heading,
       color: '#FFFFFF',
       fontSize: 16,
       fontWeight: '600',
@@ -74,6 +76,7 @@ export const TradableAssetCard: React.FC<TradableAssetCardProps> = ({
       flex: 1,
     },
     symbol: {
+      fontFamily: Typography.fontFamily.heading,
       fontSize: 18,
       fontWeight: '700',
       color: theme.text,
@@ -143,11 +146,13 @@ export const TradableAssetCard: React.FC<TradableAssetCardProps> = ({
       color: theme.textMuted,
     },
     value: {
+      fontFamily: Typography.fontFamily.mono,
       fontSize: 13,
       fontWeight: '600',
       color: theme.text,
     },
     totalValue: {
+      fontFamily: Typography.fontFamily.mono,
       fontSize: 24,
       fontWeight: '700',
       color: theme.text,
@@ -167,11 +172,12 @@ export const TradableAssetCard: React.FC<TradableAssetCardProps> = ({
       flex: 1,
     },
     metricLabel: {
-      fontSize: 11,
+      fontSize: 10,
       color: theme.textMuted,
       marginBottom: 4,
     },
     metricValue: {
+      fontFamily: Typography.fontFamily.mono,
       fontSize: 14,
       fontWeight: '600',
       color: theme.text,
@@ -300,14 +306,14 @@ export const TradableAssetCard: React.FC<TradableAssetCardProps> = ({
 
         <View style={styles.metricsRow}>
           <View style={styles.metric}>
-            <Text style={styles.metricLabel}>Current Price</Text>
-            <Text style={styles.metricValue}>
+            <Text style={styles.metricLabel} numberOfLines={1}>Current Price</Text>
+            <Text style={styles.metricValue} numberOfLines={1}>
               {formatCurrency(asset.currentPrice || 0, asset.currency)}
             </Text>
           </View>
           <View style={styles.metric}>
-            <Text style={styles.metricLabel}>Daily Change</Text>
-            <Text style={[styles.metricValue, getValueColor(asset.dailyChange || 0)]}>
+            <Text style={styles.metricLabel} numberOfLines={1}>Daily Change</Text>
+            <Text style={[styles.metricValue, getValueColor(asset.dailyChange || 0)]} numberOfLines={1}>
               {formatChange(asset.dailyChange || 0, asset.dailyChangePercent || 0, asset.currency)}
             </Text>
           </View>

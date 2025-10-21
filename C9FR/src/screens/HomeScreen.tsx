@@ -4,8 +4,8 @@ import { TabView, SceneMap } from 'react-native-tab-view';
 import { ThemeContext } from '../context/ThemeContext';
 import { Typography } from '../styles/designSystem';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-// import { useNavigation } from '@react-navigation/native';
-// import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import GoalsScreen from './main/GoalsScreen';
 import DebtScreen from './main/DebtScreen';
@@ -14,25 +14,9 @@ import AssetsScreenFinal from './main/AssetsScreenFinal';
 import OpportunitiesScreen from './main/OpportunitiesScreen';
 import ProfileModal from '../components/ProfileModal';
 import ErrorBoundary from '../components/ErrorBoundary';
+import { RootStackParamList } from '../navigation/AppNavigator';
 
-const renderScene = SceneMap({
-  goals: GoalsScreen,
-  debt: DebtScreen,
-  expenses: ExpensesScreen,
-  investments: () => (
-    <ErrorBoundary>
-      <AssetsScreenFinal />
-    </ErrorBoundary>
-  ),
-  opportunities: OpportunitiesScreen,
-});
-
-// type RootStackParamList = {
-//     Home: undefined;
-//     Profile: undefined;
-// };
-  
-// type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
+type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 interface Route {
     key: string;
@@ -43,7 +27,7 @@ interface Route {
 const HomeScreen = () => {
   const layout = useWindowDimensions();
   const { theme } = useContext(ThemeContext);
-  // const navigation = useNavigation<HomeScreenNavigationProp>();
+  const navigation = useNavigation<HomeScreenNavigationProp>();
   const [index, setIndex] = useState(2); // Default to Expenses
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [routes] = useState<Route[]>([
@@ -53,6 +37,27 @@ const HomeScreen = () => {
     { key: 'investments', title: 'Assets', icon: 'chart-line' },
     { key: 'opportunities', title: 'Opportunities', icon: 'lightbulb-on-outline' },
   ]);
+
+  const renderScene = ({ route }: { route: Route }) => {
+    switch (route.key) {
+      case 'goals':
+        return <GoalsScreen />;
+      case 'debt':
+        return <DebtScreen />;
+      case 'expenses':
+        return <ExpensesScreen />;
+      case 'investments':
+        return (
+          <ErrorBoundary>
+            <AssetsScreenFinal navigation={navigation} />
+          </ErrorBoundary>
+        );
+      case 'opportunities':
+        return <OpportunitiesScreen />;
+      default:
+        return null;
+    }
+  };
 
   const renderHeader = () => (
     <View style={[styles.header, { backgroundColor: theme.primary }]}>
