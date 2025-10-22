@@ -116,7 +116,7 @@ export const AssetsScreenFinal: React.FC<AssetsScreenFinalProps> = ({ navigation
 
       <View style={styles.container}>
         {/* Geometric Background with Triangles */}
-        <GeometricBackground opacity={0.05} />
+        <GeometricBackground opacity={0.18} />
 
         {/* Scrollable Content */}
         <ScrollView

@@ -7,10 +7,10 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, StatusBar, Image } from 'react-native';
+import Svg, { Line, Path } from 'react-native-svg';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import { Asset, TradableAsset } from '../types';
 import { Text } from '../components/reusables';
 import { GeometricBackground } from '../components/ui/GeometricBackground';
 import { perplexityColors, perplexitySpacing } from '../theme/perplexityTheme';
@@ -20,17 +20,12 @@ import {
   formatCompact,
   formatTimestamp,
   formatDate,
-  formatChangeWithArrow,
   formatPercentage,
   isTradableAsset,
   validateAsset,
   calculate52WeekRange,
   calculateDayRange,
-  TIMEFRAMES,
-  ASSET_DETAIL_TABS,
   DEFAULT_FINANCIAL_VALUES,
-  TimeFrame,
-  AssetDetailTab,
 } from '../utils';
 
 interface AssetDetailScreenProps {
@@ -40,8 +35,6 @@ interface AssetDetailScreenProps {
 
 const AssetDetailScreen: React.FC<AssetDetailScreenProps> = ({ route, navigation }) => {
   const { asset } = route.params;
-  const [selectedTimeframe, setSelectedTimeframe] = useState<TimeFrame>('1D');
-  const [activeTab, setActiveTab] = useState<AssetDetailTab>('Overview');
   const [imageError, setImageError] = useState(false);
 
   // Validate asset data
@@ -59,14 +52,7 @@ const AssetDetailScreen: React.FC<AssetDetailScreenProps> = ({ route, navigation
     navigation.goBack();
   }, [navigation]);
 
-  // Tab and timeframe handlers
-  const handleTabChange = useCallback((tab: AssetDetailTab) => {
-    setActiveTab(tab);
-  }, []);
-
-  const handleTimeframeChange = useCallback((timeframe: TimeFrame) => {
-    setSelectedTimeframe(timeframe);
-  }, []);
+  // Timeframe controls removed
 
   const handleImageError = useCallback(() => {
     setImageError(true);
@@ -80,13 +66,15 @@ const AssetDetailScreen: React.FC<AssetDetailScreenProps> = ({ route, navigation
   }, [tradableAsset?.currentPrice, asset.totalValue]);
 
   const isPositive = asset.totalGainLoss >= 0;
+  const absChangeText = `${isPositive ? '+' : '-'}${formatCurrency(Math.abs(asset.totalGainLoss), tradableAsset?.currency)}`;
+  const percentText = formatPercentage(asset.totalGainLossPercent).replace(/^[+-]/, '');
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#191a1a" />
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
       
       <View style={styles.container}>
-        <GeometricBackground opacity={0.05} />
+        <GeometricBackground opacity={0.18} />
 
         {/* Header */}
         <View style={styles.header}>
@@ -112,214 +100,193 @@ const AssetDetailScreen: React.FC<AssetDetailScreenProps> = ({ route, navigation
                 <Icon name="business" size={16} color={perplexityColors.quiet} />
               </View>
             )}
-            <Text variant="heading3" color="foreground" weight="700" style={styles.headerTitle}>
-              {asset.name}
-            </Text>
           </View>
           <View style={styles.placeholder} />
         </View>
 
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {/* Tabs */}
-          <View style={styles.tabsContainer}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
-              {ASSET_DETAIL_TABS.map((tab) => (
-                <TouchableOpacity
-                  key={tab}
-                  style={[styles.tab, activeTab === tab && styles.tabActive]}
-                  onPress={() => handleTabChange(tab)}
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected: activeTab === tab }}
-                  accessibilityLabel={`${tab} tab`}
-                >
-                  <Text
-                    variant="body"
-                    color={activeTab === tab ? 'super' : 'quiet'}
-                    weight="600"
-                  >
-                    {tab}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
+          {/* Tabs removed as requested */}
 
           {/* Price Section */}
           <View style={styles.priceSection}>
-            <Text variant="heading1" color="foreground" weight="700" style={styles.price}>
-              {formatCurrency(tradableAsset?.currentPrice || asset.totalValue, tradableAsset?.currency)}
-            </Text>
-            <View style={styles.changeRow}>
-              <Text
-                variant="body"
-                weight="600"
-                style={[styles.change, { color: isPositive ? perplexityColors.success : perplexityColors.danger }]}
-              >
-                {formatChangeWithArrow(asset.totalGainLoss, tradableAsset?.currency)}
-              </Text>
-              <Text
-                variant="body"
-                weight="600"
-                style={{ color: isPositive ? perplexityColors.success : perplexityColors.danger }}
-              >
-                {formatPercentage(asset.totalGainLossPercent)}
+            {/* Company branding row */}
+            <View style={styles.brandRow}>
+              {tradableAsset?.logoUrl && !imageError ? (
+                <Image
+                  source={{ uri: tradableAsset.logoUrl }}
+                  style={styles.brandLogo}
+                  onError={handleImageError}
+                  accessibilityLabel={`${asset.name} logo`}
+                />
+              ) : (
+                <View style={[styles.brandLogo, styles.brandLogoPlaceholder]}>
+                  <Icon name="business" size={16} color={perplexityColors.quiet} />
+                </View>
+              )}
+              <Text variant="heading2" color="foreground" weight="700" style={styles.brandName}>
+                {asset.name}
               </Text>
             </View>
-            <Text variant="bodySmall" color="quieter" style={styles.timestamp}>
-              At close: {formatTimestamp(asset.lastUpdated)}
-            </Text>
-          </View>
-
-          {/* Chart Placeholder */}
-          <View style={styles.chartContainer}>
-            {/* Timeframe Selector */}
-            <View style={styles.timeframeSelector}>
-              {TIMEFRAMES.map((tf) => (
-                <TouchableOpacity
-                  key={tf}
-                  style={[
-                    styles.timeframeButton,
-                    selectedTimeframe === tf && styles.timeframeButtonActive,
-                  ]}
-                  onPress={() => handleTimeframeChange(tf)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: selectedTimeframe === tf }}
-                  accessibilityLabel={`${tf} timeframe`}
+            {/* Price summary card */}
+            <View style={styles.priceSummaryCard}>
+              <View style={styles.priceSummaryRow}>
+                <Text
+                  variant="heading3"
+                  color="foreground"
+                  weight="700"
+                  style={styles.priceSummaryPrice}
                 >
+                  {formatCurrency(tradableAsset?.currentPrice || asset.totalValue, tradableAsset?.currency)}
+                </Text>
+                <Text
+                  variant="body"
+                  weight="600"
+                  style={styles.priceSummaryChange}
+                  numberOfLines={1}
+                >
+                  {absChangeText}
+                </Text>
+                <View style={styles.priceSummaryPercentContainer}>
+                  <Icon
+                    name={isPositive ? 'arrow-upward' : 'arrow-downward'}
+                    size={16}
+                    color={isPositive ? perplexityColors.success : perplexityColors.danger}
+                    style={[
+                      styles.priceSummaryArrow,
+                      { transform: [{ rotate: isPositive ? '45deg' : '-45deg' }] },
+                    ]}
+                  />
                   <Text
-                    variant="bodySmall"
-                    color={selectedTimeframe === tf ? 'foreground' : 'quiet'}
-                    weight="600"
+                    variant="body"
+                    weight="700"
+                    style={[styles.priceSummaryPercent, { color: isPositive ? perplexityColors.success : perplexityColors.danger }]}
+                    numberOfLines={1}
                   >
-                    {tf}
+                    {percentText}
                   </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Chart Display Area */}
-            <View style={styles.chartDisplay}>
-              <View style={styles.chartPlaceholder}>
-                {/* Simulated chart line */}
-                <View style={[styles.chartLine, { backgroundColor: isPositive ? perplexityColors.success : perplexityColors.danger }]} />
-                <Text variant="bodySmall" color="quieter" style={styles.chartLabel}>
-                  Chart visualization
-                </Text>
+                </View>
               </View>
+              <Text variant="bodySmall" color="quieter" style={styles.priceSummaryTimestamp}>
+                At close: {formatTimestamp(asset.lastUpdated)}
+              </Text>
             </View>
+            {/* Removed duplicate large price/change row and moved timestamp into the card */}
+          </View>
 
-            {/* Chart Stats */}
-            <View style={styles.chartStats}>
-              <View style={styles.chartStat}>
-                <Text variant="bodySmall" color="quieter">
-                  {formatChangeWithArrow(asset.totalGainLoss, tradableAsset?.currency)}
-                </Text>
-              </View>
-              <View style={styles.chartStat}>
-                <Text variant="bodySmall" color="quieter">
-                  Prev close: {formatCurrency(tradableAsset?.averagePurchasePrice || asset.totalValue, tradableAsset?.currency)}
-                </Text>
+          {/* Chart Card */}
+          <View style={styles.chartContainer}>
+            <View style={styles.chartCard}>
+              {/* Chart Display Area with 7x3 grid (internal dividing lines only) and mock line */}
+              <View style={styles.chartDisplay}>
+                <Svg width="100%" height="100%" viewBox="0 0 350 270" preserveAspectRatio="none">
+                  {/* Grid: 7 columns x 3 rows (including outer edges to touch all sides) */}
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <Line key={`v-${i}`} x1={i * (350 / 7)} y1={0} x2={i * (350 / 7)} y2={270} stroke={perplexityColors.border} strokeOpacity={0.6} strokeWidth={1} />
+                  ))}
+                  {Array.from({ length: 4 }).map((_, j) => (
+                    <Line key={`h-${j}`} x1={0} y1={j * (270 / 3)} x2={350} y2={j * (270 / 3)} stroke={perplexityColors.border} strokeOpacity={0.6} strokeWidth={1} />
+                  ))}
+
+                  {/* Mock chart line */}
+                  <Path
+                    d="M 0 210 L 50 190 L 100 160 L 150 180 L 200 140 L 250 160 L 300 120 L 350 140"
+                    stroke={isPositive ? perplexityColors.success : perplexityColors.danger}
+                    strokeWidth={2}
+                    fill="none"
+                    strokeOpacity={0.9}
+                  />
+                </Svg>
+                {/* Date label overlay */}
+                <View style={styles.chartOverlay} pointerEvents="none">
+                  <Text variant="bodySmall" color="quiet" weight="600">
+                    Date: {formatDate(asset.lastUpdated)}
+                  </Text>
+                </View>
               </View>
             </View>
           </View>
 
-          {/* Financial Profile */}
+          {/* Financial Profile replaced with 3x3 table */}
           <View style={styles.section}>
-            <Text variant="heading3" color="foreground" weight="700" style={styles.sectionTitle}>
-              Financial Profile
-            </Text>
-
-            <View style={styles.profileGrid}>
-              <View style={styles.profileRow}>
-                <View style={styles.profileItem}>
-                  <Text variant="bodySmall" color="quiet" style={styles.profileLabel}>
-                    Prev Close
-                  </Text>
-                  <Text variant="body" color="foreground" weight="600">
+            <View style={styles.tableCard}>
+              {/* Connected grid overlay with rounded corners */}
+              <View style={styles.tableGridOverlay} pointerEvents="none">
+                <View style={styles.gridCols}>
+                  <View style={styles.gridCol} />
+                  <View style={[styles.gridCol, styles.gridColDivider]} />
+                  <View style={[styles.gridCol, styles.gridColDivider]} />
+                </View>
+                <View style={styles.gridRows}>
+                  <View style={styles.gridRow} />
+                  <View style={[styles.gridRow, styles.gridRowDivider]} />
+                  <View style={[styles.gridRow, styles.gridRowDivider]} />
+                </View>
+              </View>
+              {/* Row 1 */}
+              <View style={styles.tableRow}>
+                <View style={[styles.tableCell]}>
+                  <Text variant="bodySmall" color="quiet" style={styles.tableLabel}>Previous Close</Text>
+                  <Text variant="body" color="foreground" weight="600" style={[styles.tableValue, styles.prevCloseValueSmall]}>
                     {formatCurrency(tradableAsset?.averagePurchasePrice || asset.totalValue, tradableAsset?.currency)}
                   </Text>
                 </View>
-                <View style={styles.profileItem}>
-                  <Text variant="bodySmall" color="quiet" style={styles.profileLabel}>
-                    52W Range
-                  </Text>
-                  <Text variant="body" color="foreground" weight="600">
+                <View style={[styles.tableCell]}>
+                  <Text variant="bodySmall" color="quiet" style={styles.tableLabel}>52W Range</Text>
+                  <Text variant="body" color="foreground" weight="600" style={styles.tableValue}>
                     {formatCompact(yearRange.low)} - {formatCompact(yearRange.high)}
                   </Text>
                 </View>
-              </View>
-
-              <View style={styles.profileRow}>
-                <View style={styles.profileItem}>
-                  <Text variant="bodySmall" color="quiet" style={styles.profileLabel}>
-                    Market Cap
-                  </Text>
-                  <Text variant="body" color="foreground" weight="600">
+                <View style={styles.tableCell}>
+                  <Text variant="bodySmall" color="quiet" style={styles.tableLabel}>Market Cap</Text>
+                  <Text variant="body" color="foreground" weight="600" style={styles.tableValue}>
                     {formatCompact(tradableAsset?.marketCap || asset.totalValue * 1000)}
                   </Text>
                 </View>
-                <View style={styles.profileItem}>
-                  <Text variant="bodySmall" color="quiet" style={styles.profileLabel}>
-                    Open
-                  </Text>
-                  <Text variant="body" color="foreground" weight="600">
+              </View>
+
+              {/* Row 2 */}
+              <View style={[styles.tableRow]}>
+                <View style={[styles.tableCell]}>
+                  <Text variant="bodySmall" color="quiet" style={styles.tableLabel}>Open</Text>
+                  <Text variant="body" color="foreground" weight="600" style={styles.tableValue}>
                     {formatCurrency(tradableAsset?.currentPrice || asset.totalValue, tradableAsset?.currency)}
+                  </Text>
+                </View>
+                <View style={[styles.tableCell]}>
+                  <Text variant="bodySmall" color="quiet" style={styles.tableLabel}>P/E Ratio</Text>
+                  <Text variant="body" color="foreground" weight="600" style={styles.tableValue}>
+                    {tradableAsset?.peRatio?.toFixed(2) || DEFAULT_FINANCIAL_VALUES.PE_RATIO}
+                  </Text>
+                </View>
+                <View style={styles.tableCell}>
+                  <Text variant="bodySmall" color="quiet" style={styles.tableLabel}>Dividend Yield</Text>
+                  <Text variant="body" color="foreground" weight="600" style={styles.tableValue}>
+                    {(tradableAsset?.growthRate?.toFixed(2) || DEFAULT_FINANCIAL_VALUES.DIVIDEND_YIELD) + '%'}
                   </Text>
                 </View>
               </View>
 
-              {tradableAsset && (
-                <>
-                  <View style={styles.profileRow}>
-                    <View style={styles.profileItem}>
-                      <Text variant="bodySmall" color="quiet" style={styles.profileLabel}>
-                        P/E Ratio
-                      </Text>
-                      <Text variant="body" color="foreground" weight="600">
-                        {tradableAsset.peRatio?.toFixed(2) || DEFAULT_FINANCIAL_VALUES.PE_RATIO}
-                      </Text>
-                    </View>
-                    <View style={styles.profileItem}>
-                      <Text variant="bodySmall" color="quiet" style={styles.profileLabel}>
-                        Dividend Yield
-                      </Text>
-                      <Text variant="body" color="foreground" weight="600">
-                        {tradableAsset.growthRate?.toFixed(2) || DEFAULT_FINANCIAL_VALUES.DIVIDEND_YIELD}%
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.profileRow}>
-                    <View style={styles.profileItem}>
-                      <Text variant="bodySmall" color="quiet" style={styles.profileLabel}>
-                        Day Range
-                      </Text>
-                      <Text variant="body" color="foreground" weight="600">
-                        {formatCurrency(dayRange.low, tradableAsset.currency)} - {formatCurrency(dayRange.high, tradableAsset.currency)}
-                      </Text>
-                    </View>
-                    <View style={styles.profileItem}>
-                      <Text variant="bodySmall" color="quiet" style={styles.profileLabel}>
-                        Volume
-                      </Text>
-                      <Text variant="body" color="foreground" weight="600">
-                        {tradableAsset.volume || DEFAULT_FINANCIAL_VALUES.VOLUME}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.profileRow}>
-                    <View style={styles.profileItem}>
-                      <Text variant="bodySmall" color="quiet" style={styles.profileLabel}>
-                        EPS
-                      </Text>
-                      <Text variant="body" color="foreground" weight="600">
-                        ₹{DEFAULT_FINANCIAL_VALUES.EPS}
-                      </Text>
-                    </View>
-                  </View>
-                </>
-              )}
+              {/* Row 3 */}
+              <View style={[styles.tableRow]}>
+                <View style={[styles.tableCell]}>
+                  <Text variant="bodySmall" color="quiet" style={styles.tableLabel}>Day Range</Text>
+                  <Text variant="body" color="foreground" weight="600" style={styles.tableValue}>
+                    {formatCurrency(dayRange.low, tradableAsset?.currency)} - {formatCurrency(dayRange.high, tradableAsset?.currency)}
+                  </Text>
+                </View>
+                <View style={[styles.tableCell]}>
+                  <Text variant="bodySmall" color="quiet" style={styles.tableLabel}>Volume</Text>
+                  <Text variant="body" color="foreground" weight="600" style={styles.tableValue}>
+                    {tradableAsset?.volume || DEFAULT_FINANCIAL_VALUES.VOLUME}
+                  </Text>
+                </View>
+                <View style={styles.tableCell}>
+                  <Text variant="bodySmall" color="quiet" style={styles.tableLabel}>EPS</Text>
+                  <Text variant="body" color="foreground" weight="600" style={styles.tableValue}>
+                    ₹{DEFAULT_FINANCIAL_VALUES.EPS}
+                  </Text>
+                </View>
+              </View>
             </View>
           </View>
 
@@ -349,7 +316,7 @@ const AssetDetailScreen: React.FC<AssetDetailScreenProps> = ({ route, navigation
                 <View style={styles.newsContent}>
                   <Text variant="body" color="foreground" weight="600" numberOfLines={2}>
                     Market Update: {asset.name} Performance Analysis
-                  </Text>
+                  </Text>                
                   <View style={styles.newsFooter}>
                     <Icon name="schedule" size={14} color={perplexityColors.quieter} />
                     <Text variant="bodySmall" color="quieter" style={styles.newsDate}>
@@ -360,6 +327,7 @@ const AssetDetailScreen: React.FC<AssetDetailScreenProps> = ({ route, navigation
               </View>
             </View>
           </View>
+
 
           <View style={styles.footer} />
         </ScrollView>
@@ -407,6 +375,76 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 16,
   },
+  companyName: {
+    marginBottom: perplexitySpacing.xs,
+  },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: perplexitySpacing.sm,
+    marginBottom: perplexitySpacing.xs,
+  },
+  brandLogo: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+  },
+  brandLogoPlaceholder: {
+    backgroundColor: perplexityColors.subtler,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  brandName: {
+    // slightly larger and brighter via variant+color; extra spacing if needed
+  },
+  priceSummaryCard: {
+    alignSelf: 'flex-start',
+    width: '75%',
+    backgroundColor: '#1f2121',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: perplexityColors.borderSubtle,
+    marginBottom: perplexitySpacing.sm,
+  },
+  priceSummaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: perplexitySpacing.md,
+    paddingVertical: perplexitySpacing.sm,
+    gap: perplexitySpacing.sm,
+  },
+  priceSummaryPrice: {
+    fontSize: 28,
+    flexShrink: 0,
+  },
+  priceSummaryChange: {
+    fontSize: 16,
+    color: perplexityColors.quiet,
+    flexGrow: 1,
+    flexBasis: 0,
+    flexShrink: 1,
+    textAlign: 'center',
+    marginHorizontal: perplexitySpacing.xs,
+  },
+  priceSummaryPercent: {
+    fontSize: 16,
+    flexShrink: 0,
+  },
+  priceSummaryPercentContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: perplexitySpacing.xs,
+    flexShrink: 0,
+    minWidth: 72,
+  },
+  priceSummaryArrow: {
+    marginRight: perplexitySpacing.xs,
+  },
+  priceSummaryTimestamp: {
+    paddingHorizontal: perplexitySpacing.md,
+    paddingBottom: perplexitySpacing.xs,
+    paddingTop: 0,
+  },
   placeholder: {
     width: 40,
   },
@@ -431,7 +469,8 @@ const styles = StyleSheet.create({
   },
   priceSection: {
     paddingHorizontal: perplexitySpacing.lg,
-    paddingVertical: perplexitySpacing.xl,
+    paddingTop: perplexitySpacing.xl,
+    paddingBottom: 0,
   },
   price: {
     fontSize: 36,
@@ -451,42 +490,97 @@ const styles = StyleSheet.create({
   },
   chartContainer: {
     paddingHorizontal: perplexitySpacing.lg,
-    paddingVertical: perplexitySpacing.md,
+    paddingTop: 0,
+    paddingBottom: perplexitySpacing.md,
   },
-  timeframeSelector: {
-    flexDirection: 'row',
-    gap: perplexitySpacing.sm,
-    marginBottom: perplexitySpacing.lg,
+  chartCard: {
+    backgroundColor: '#1f2121',
+    borderRadius: 14,
+    borderWidth: 0,
+    overflow: 'hidden',
+    padding: 0,
   },
-  timeframeButton: {
-    paddingHorizontal: perplexitySpacing.md,
-    paddingVertical: perplexitySpacing.sm,
-    borderRadius: 6,
-    backgroundColor: perplexityColors.subtler,
-  },
-  timeframeButtonActive: {
-    backgroundColor: perplexityColors.border,
-  },
-  chartDisplay: {
-    height: 200,
-    marginBottom: perplexitySpacing.md,
-  },
-  chartPlaceholder: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: perplexityColors.subtler,
-    borderRadius: 12,
+  tableCard: {
+    backgroundColor: '#191a1a',
+    borderRadius: 14,
+    overflow: 'hidden',
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    borderWidth: 1.5,
+    borderColor: perplexityColors.border,
+    borderStyle: 'solid',
     position: 'relative',
   },
-  chartLine: {
+  tableRow: {
+    flexDirection: 'row',
+    backgroundColor: 'transparent',
+  },
+  tableRowBorderTop: {
+    borderTopWidth: 1.5,
+    borderTopColor: perplexityColors.border,
+  },
+  tableCell: {
+    flex: 1,
+    paddingVertical: perplexitySpacing.sm,
+    paddingHorizontal: perplexitySpacing.sm,
+    backgroundColor: 'transparent',
+  },
+  tableCellRightBorder: {
+    borderRightWidth: 1.5,
+    borderRightColor: perplexityColors.border,
+  },
+  tableLabel: {
+    marginBottom: 2,
+  },
+  tableValue: {
+    fontWeight: '700',
+    fontSize: 13.6,
+  },
+  prevCloseValueSmall: {
+    fontSize: 13.6,
+  },
+  tableGridOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  gridCols: {
     position: 'absolute',
-    bottom: 40,
-    left: 20,
-    right: 20,
-    height: 80,
-    opacity: 0.3,
-    borderRadius: 4,
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+  },
+  gridCol: {
+    flex: 1,
+  },
+  gridColDivider: {
+    borderLeftWidth: 1.5,
+    borderLeftColor: perplexityColors.border,
+  },
+  gridRows: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    justifyContent: 'space-between',
+  },
+  gridRow: {
+    flex: 1,
+  },
+  gridRowDivider: {
+    borderTopWidth: 1.5,
+    borderTopColor: perplexityColors.border,
+  },
+  chartDisplay: {
+    height: 300,
+    marginBottom: perplexitySpacing.md,
+    backgroundColor: 'transparent',
+  },
+  chartOverlay: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
   },
   chartLabel: {
     marginTop: perplexitySpacing.md,
