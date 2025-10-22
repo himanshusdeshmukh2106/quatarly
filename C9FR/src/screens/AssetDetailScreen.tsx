@@ -7,12 +7,13 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, StatusBar, Image } from 'react-native';
-import Svg, { Line, Path } from 'react-native-svg';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Text } from '../components/reusables';
 import { GeometricBackground } from '../components/ui/GeometricBackground';
+import { TimeframeSelector, Timeframe } from '../components/TimeframeSelector';
+import { PriceChart } from '../components/PriceChart';
 import { perplexityColors, perplexitySpacing } from '../theme/perplexityTheme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import {
@@ -36,6 +37,8 @@ interface AssetDetailScreenProps {
 const AssetDetailScreen: React.FC<AssetDetailScreenProps> = ({ route, navigation }) => {
   const { asset } = route.params;
   const [imageError, setImageError] = useState(false);
+  const [selectedTimeframe, setSelectedTimeframe] = useState<Timeframe>('6M');
+  const [showTimeframeSelector, setShowTimeframeSelector] = useState(false);
 
   // Validate asset data
   if (!validateAsset(asset)) {
@@ -52,11 +55,36 @@ const AssetDetailScreen: React.FC<AssetDetailScreenProps> = ({ route, navigation
     navigation.goBack();
   }, [navigation]);
 
-  // Timeframe controls removed
-
   const handleImageError = useCallback(() => {
     setImageError(true);
   }, []);
+
+  const handleTimeframePress = useCallback(() => {
+    setShowTimeframeSelector(true);
+  }, []);
+
+  const handleTimeframeSelect = useCallback((timeframe: Timeframe) => {
+    setSelectedTimeframe(timeframe);
+  }, []);
+
+  const handleCloseTimeframeSelector = useCallback(() => {
+    setShowTimeframeSelector(false);
+  }, []);
+
+  // Get timeframe label for display
+  const timeframeLabel = useMemo(() => {
+    const labels: Record<Timeframe, string> = {
+      '1D': '1 day',
+      '5D': '5 day',
+      '1M': '1 month',
+      '6M': '6 month',
+      'YTD': 'Year to date',
+      '1Y': '1 year',
+      '5Y': '5 year',
+      'MAX': 'Max',
+    };
+    return labels[selectedTimeframe];
+  }, [selectedTimeframe]);
 
   // Memoized calculations
   const yearRange = useMemo(() => calculate52WeekRange(asset.totalValue), [asset.totalValue]);
@@ -72,7 +100,7 @@ const AssetDetailScreen: React.FC<AssetDetailScreenProps> = ({ route, navigation
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
-      
+
       <View style={styles.container}>
         <GeometricBackground opacity={0.18} />
 
@@ -176,32 +204,25 @@ const AssetDetailScreen: React.FC<AssetDetailScreenProps> = ({ route, navigation
           {/* Chart Card */}
           <View style={styles.chartContainer}>
             <View style={styles.chartCard}>
-              {/* Chart Display Area with 7x3 grid (internal dividing lines only) and mock line */}
-              <View style={styles.chartDisplay}>
-                <Svg width="100%" height="100%" viewBox="0 0 350 270" preserveAspectRatio="none">
-                  {/* Grid: 7 columns x 3 rows (including outer edges to touch all sides) */}
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <Line key={`v-${i}`} x1={i * (350 / 7)} y1={0} x2={i * (350 / 7)} y2={270} stroke={perplexityColors.border} strokeOpacity={0.6} strokeWidth={1} />
-                  ))}
-                  {Array.from({ length: 4 }).map((_, j) => (
-                    <Line key={`h-${j}`} x1={0} y1={j * (270 / 3)} x2={350} y2={j * (270 / 3)} stroke={perplexityColors.border} strokeOpacity={0.6} strokeWidth={1} />
-                  ))}
+              {/* Timeframe selector button */}
+              <TouchableOpacity
+                style={styles.timeframeButton}
+                onPress={handleTimeframePress}
+                accessibilityRole="button"
+                accessibilityLabel={`Current timeframe: ${timeframeLabel}. Tap to change`}
+              >
+                <Text variant="body" color="foreground" weight="600" style={styles.timeframeButtonText}>
+                  {timeframeLabel}
+                </Text>
+                <Icon name="keyboard-arrow-down" size={20} color={perplexityColors.foreground} />
+              </TouchableOpacity>
 
-                  {/* Mock chart line */}
-                  <Path
-                    d="M 0 210 L 50 190 L 100 160 L 150 180 L 200 140 L 250 160 L 300 120 L 350 140"
-                    stroke={isPositive ? perplexityColors.success : perplexityColors.danger}
-                    strokeWidth={2}
-                    fill="none"
-                    strokeOpacity={0.9}
-                  />
-                </Svg>
-                {/* Date label overlay */}
-                <View style={styles.chartOverlay} pointerEvents="none">
-                  <Text variant="bodySmall" color="quiet" weight="600">
-                    Date: {formatDate(asset.lastUpdated)}
-                  </Text>
-                </View>
+              {/* Enhanced Price Chart with dual-color gradient and axis labels */}
+              <View style={styles.chartDisplay}>
+                <PriceChart
+                  data={[]} // Pass actual price data here when available
+                  timeframe={selectedTimeframe}
+                />
               </View>
             </View>
           </View>
@@ -316,7 +337,7 @@ const AssetDetailScreen: React.FC<AssetDetailScreenProps> = ({ route, navigation
                 <View style={styles.newsContent}>
                   <Text variant="body" color="foreground" weight="600" numberOfLines={2}>
                     Market Update: {asset.name} Performance Analysis
-                  </Text>                
+                  </Text>
                   <View style={styles.newsFooter}>
                     <Icon name="schedule" size={14} color={perplexityColors.quieter} />
                     <Text variant="bodySmall" color="quieter" style={styles.newsDate}>
@@ -331,6 +352,14 @@ const AssetDetailScreen: React.FC<AssetDetailScreenProps> = ({ route, navigation
 
           <View style={styles.footer} />
         </ScrollView>
+
+        {/* Timeframe Selector Modal */}
+        <TimeframeSelector
+          visible={showTimeframeSelector}
+          selectedTimeframe={selectedTimeframe}
+          onSelect={handleTimeframeSelect}
+          onClose={handleCloseTimeframeSelector}
+        />
       </View>
     </SafeAreaView>
   );
@@ -499,6 +528,25 @@ const styles = StyleSheet.create({
     borderWidth: 0,
     overflow: 'hidden',
     padding: 0,
+    position: 'relative',
+  },
+  timeframeButton: {
+    position: 'absolute',
+    top: perplexitySpacing.md,
+    left: perplexitySpacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(31, 33, 33, 0.95)',
+    paddingVertical: perplexitySpacing.xs,
+    paddingHorizontal: perplexitySpacing.sm,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: perplexityColors.border,
+    zIndex: 10,
+    gap: perplexitySpacing.xs,
+  },
+  timeframeButtonText: {
+    fontSize: 14,
   },
   tableCard: {
     backgroundColor: '#191a1a',
